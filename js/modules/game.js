@@ -1,16 +1,16 @@
 ﻿// js/modules/game.js
 // Hlavní herní logika, smyčky a akce. Orchestruje celou hru.
 
-console.log('[DEBUG] game.js loaded v=127');
+console.log('[DEBUG] game.js loaded v=130');
 
-import * as C from './config.js?v=129';
-import { gameState, viewportState } from './state.js?v=129';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=129';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=129';
-import { attachEventListeners } from './input.js?v=129';
-import { gameLoop } from './renderer.js?v=129';
-import { runAIDecision } from './ai.js?v=129';
-import { Logger } from './logger.js?v=129';
+import * as C from './config.js?v=130';
+import { gameState, viewportState } from './state.js?v=130';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=130';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=130';
+import { attachEventListeners } from './input.js?v=130';
+import { gameLoop } from './renderer.js?v=130';
+import { runAIDecision } from './ai.js?v=130';
+import { Logger } from './logger.js?v=130';
 
 // Nový objekt pro definici hráčů a jejich barev
 export const PLAYER_DEFINITIONS = {
@@ -19,7 +19,7 @@ export const PLAYER_DEFINITIONS = {
 };
 
 export function initGame() {
-    console.log("[GAME] Inicializace hry v=110...");
+    console.log("[GAME] Inicializace hry v=130...");
     console.log("[GAME] Konfigurace:", { INITIAL_GOLD: C.INITIAL_GOLD, INITIAL_UNITS: C.INITIAL_UNITS });
 
     // Reset a inicializace stavu

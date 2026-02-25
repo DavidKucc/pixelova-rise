@@ -1,7 +1,7 @@
 // js/main.js
-console.log('[DEBUG] main.js loaded v=129');
+console.log('[DEBUG] main.js loaded v=130');
 
-import { initGame } from './modules/game.js?v=129';
+import { initGame } from './modules/game.js?v=130';
 
 // Funkce pro detekci parametrů v URL při načtení
 function checkUrlParams() {

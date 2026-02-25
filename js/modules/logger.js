@@ -1,10 +1,11 @@
 ﻿// js/modules/logger.js
 // Rozšířený logovací systém pro lepší debugging.
+console.log('[DEBUG] logger.js loaded v=130');
 
 const LOG_PREFIX = '[GAME]';
 
 export const Logger = {
-    info: (msg, data = null) => {
+    log: (msg, data = null) => {
         if (data) {
             console.log(`${LOG_PREFIX} [INFO] ${msg}`, data);
         } else {
