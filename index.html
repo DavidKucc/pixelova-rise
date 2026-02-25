@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pixelová Říše - Vylepšená Verze</title>
-    <link rel="stylesheet" href="style.css?v=127">
+    <link rel="stylesheet" href="style.css?v=129">
 </head>
 
 <body>
@@ -29,15 +29,21 @@
         <button class="back-btn" onclick="showScreen('main-menu')">Zpět</button>
     </div>
 
-    <!-- LOBBY OBRAZOVKA -->
     <div id="lobby-screen" class="menu-screen" style="display:none;">
         <h1>Lobby</h1>
         <div class="lobby-content">
             <p id="lobby-player-status">Hráč: <span id="display-nickname">...</span></p>
+            <div id="lobby-players-list">
+                <!-- Zde se budou zobrazovat připojení hráči -->
+                <div class="lobby-player-item current-player"><span class="status-dot online"></span> <span
+                        id="current-player-name">...</span> (Ty)</div>
+            </div>
             <div class="waiting-animation">
                 <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
             </div>
             <h3>Čekání na protihráče...</h3>
+
+            <button id="copy-lobby-btn" style="margin-top: 20px;">🔗 Kopírovat odkaz pro pozvání</button>
         </div>
         <button class="back-btn" onclick="showScreen('mode-selection')">Zpět do výběru</button>
     </div>

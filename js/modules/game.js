@@ -3,14 +3,14 @@
 
 console.log('[DEBUG] game.js loaded v=127');
 
-import * as C from './config.js?v=127';
-import { gameState, viewportState } from './state.js?v=127';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=127';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=127';
-import { attachEventListeners } from './input.js?v=127';
-import { gameLoop } from './renderer.js?v=127';
-import { runAIDecision } from './ai.js?v=127';
-import { Logger } from './logger.js?v=127';
+import * as C from './config.js?v=129';
+import { gameState, viewportState } from './state.js?v=129';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=129';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=129';
+import { attachEventListeners } from './input.js?v=129';
+import { gameLoop } from './renderer.js?v=129';
+import { runAIDecision } from './ai.js?v=129';
+import { Logger } from './logger.js?v=129';
 
 // Nový objekt pro definici hráčů a jejich barev
 export const PLAYER_DEFINITIONS = {
