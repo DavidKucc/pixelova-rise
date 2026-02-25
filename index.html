@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="cs">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixelová Říše - Vylepšená Verze</title>
+    <link rel="stylesheet" href="style.css?v=127">
+</head>
+
+<body>
+    <!-- HLAVNÍ MENU -->
+    <div id="main-menu" class="menu-screen">
+        <h1>Pixelová Říše</h1>
+        <div class="nickname-container">
+            <label for="player-nickname">Zadej svou přezdívku:</label>
+            <input type="text" id="player-nickname" placeholder="Tvé jméno..." maxlength="15">
+        </div>
+        <button id="start-game-btn">Nová Hra</button>
+    </div>
+
+    <!-- VÝBĚR MÓDU -->
+    <div id="mode-selection" class="menu-screen" style="display:none;">
+        <h1>Vyber si režim</h1>
+        <div class="mode-buttons">
+            <button id="local-mode-btn">Lokální Hra (AI)</button>
+            <button id="online-mode-btn">Online Hra (Lobby)</button>
+        </div>
+        <button class="back-btn" onclick="showScreen('main-menu')">Zpět</button>
+    </div>
+
+    <!-- LOBBY OBRAZOVKA -->
+    <div id="lobby-screen" class="menu-screen" style="display:none;">
+        <h1>Lobby</h1>
+        <div class="lobby-content">
+            <p id="lobby-player-status">Hráč: <span id="display-nickname">...</span></p>
+            <div class="waiting-animation">
+                <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+            </div>
+            <h3>Čekání na protihráče...</h3>
+        </div>
+        <button class="back-btn" onclick="showScreen('mode-selection')">Zpět do výběru</button>
+    </div>
+
+    <!-- HERNÍ ROZHRANÍ (skryté) -->
+    <div id="game-ui" style="display:none;">
+        <div class="info-column">
+            <div style="width:100%; margin-bottom: 20px; display:flex; gap:10px; flex-direction:column;">
+                <button id="reset-button"
+                    style="padding:10px; background:#d32f2f; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">🔄
+                    Restartovat Hru</button>
+                <button onclick="revealMap()"
+                    style="padding:10px; background:#444; color:#ddd; border:1px solid #666; border-radius:4px; cursor:pointer;">🗺️
+                    Odhalit Mapu (Debug)</button>
+            </div>
+            <div class="stats-panel">
+                <h2>STAV ŘÍŠE</h2>
+                <div class="stat"><span>💰 Zlato:</span> <span id="gold-display" class="stat-value">0</span></div>
+                <div class="stat"><span>💎 Krystaly:</span> <span id="crystals-display" class="stat-value">0</span>
+                </div>
+                <div class="stat"><span>📈 Příjem/s:</span> <span id="income-display" class="stat-value">0</span>
+                </div>
+                <div class="stat"><span>⚔️ Jednotky:</span> <span id="units-display" class="stat-value">0</span>
+                </div>
+                <div class="stat"><span>🛰️ Expedice:</span> <span id="expeditions-display" class="stat-value">0</span>
+                </div>
+                <div class="buy-group" style="display:flex; gap:5px; margin-top:10px;">
+                    <button class="unit-buy-button" id="buy-unit-1" style="margin-top:0;">+1 (50💰)</button>
+                    <button class="unit-buy-button" id="buy-unit-10" style="margin-top:0;">+10</button>
+                    <button class="unit-buy-button" id="buy-unit-max" style="margin-top:0;">MAX</button>
+                </div>
+                <div class="stat-slider">
+                    <label for="expedition-slider">Velikost expedice:</label>
+                    <input type="range" id="expedition-slider" min="1" max="100" value="5">
+                    <span id="expedition-slider-value">5% (0)</span>
+                </div>
+            </div>
+            <div id="action-panel">
+                <h3>Akční Panel</h3>
+                <p>Klikni na budovu pro info.</p>
+            </div>
+            <div id="expeditions-panel">
+                <h3>AKTIVNÍ EXPEDICE</h3>
+                <div id="expedition-list"></div>
+            </div>
+            <div class="log-container" id="log-container"></div>
+        </div>
+        <div class="game-column">
+            <h1>Pixelová Říše</h1>
+            <div id="game-viewport" tabindex="-1">
+                <canvas id="game-canvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ZMĚNA ZDE: Skript je nyní modul a odkazuje na main.js -->
+    <script type="module" src="js/main.js?v=126"></script>
+
+</body>
+
+</html>
