@@ -1,7 +1,7 @@
 // js/main.js
-console.log('[DEBUG] main.js loaded v=136');
+console.log('[DEBUG] main.js loaded v=137');
 
-import { initGame } from './modules/game.js?v=136';
+import { initGame } from './modules/game.js?v=137';
 
 // --- FIREBASE KONFIGURACE (Doplněno od uživatele) ---
 const firebaseConfig = {
