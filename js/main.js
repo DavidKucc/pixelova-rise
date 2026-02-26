@@ -1,5 +1,5 @@
 // js/main.js
-console.log('[DEBUG] main.js loaded v=132');
+console.log('[DEBUG] main.js loaded v=133');
 
 import { initGame } from './modules/game.js?v=132';
 
@@ -24,6 +24,8 @@ export const db = getDatabase(app);
 
 export let currentLobbyId = null;
 export let playerFirebaseRef = null;
+export let isHost = false;
+export let isReady = false;
 
 // Funkce pro detekci parametrů v URL při načtení
 function checkUrlParams() {
@@ -72,8 +74,17 @@ function joinFirebaseLobby(nickname) {
 
     // Přidat sebe do seznamu
     playerFirebaseRef = push(lobbyPlayersRef);
+
+    // JSOU JSME HOST? (Pokud v lobby ještě nikdo není)
+    onValue(lobbyPlayersRef, (snapshot) => {
+        if (!snapshot.exists()) {
+            isHost = true;
+        }
+    }, { onlyOnce: true });
+
     set(playerFirebaseRef, {
         name: nickname,
+        ready: false,
         lastSeen: Date.now()
     });
 
@@ -95,40 +106,78 @@ function joinFirebaseLobby(nickname) {
     });
 }
 
+// Tuto funkci volá hráč pro změnu stavu Ready
+window.toggleReady = function () {
+    if (!playerFirebaseRef) return;
+    isReady = !isReady;
+    const btn = document.getElementById('ready-btn');
+    btn.textContent = isReady ? 'Unready' : 'Ready';
+    btn.classList.toggle('ready-active', isReady);
+
+    set(ref(db, `lobbies/${currentLobbyId}/players/${playerFirebaseRef.key}/ready`), isReady);
+};
+
 // Tuto funkci volá hostitel kliknutím na "Start" v Lobby
 window.hostStartGame = function () {
-    if (!currentLobbyId) return;
-    const gameStatusRef = ref(db, `lobbies/${currentLobbyId}/status`);
-    set(gameStatusRef, 'started').catch(err => {
-        console.error("Chyba při startu hry:", err);
-    });
+    if (!currentLobbyId || !isHost) return;
+
+    // Kontrola zda jsou všichni ready (kromě možná hostitele, ten dává start)
+    const playersRef = ref(db, `lobbies/${currentLobbyId}/players`);
+    onValue(playersRef, (snapshot) => {
+        const players = snapshot.val();
+        const allReady = Object.values(players).every(p => p.ready);
+
+        if (allReady) {
+            const gameStatusRef = ref(db, `lobbies/${currentLobbyId}/status`);
+            set(gameStatusRef, 'started');
+        } else {
+            alert('Všichni hráči musí být Ready před startem!');
+        }
+    }, { onlyOnce: true });
 };
 
 function startGameLocally() {
     console.log("HRA STARTUJE!");
-    showScreen('game-container');
+    window.showScreen('game-ui'); // Oprava ID obrazovky
     initGame();
 }
 
 function updateLobbyUI(players) {
     const listEl = document.getElementById('lobby-players-list');
-    listEl.innerHTML = ''; // Vyčistit
+    listEl.innerHTML = '';
 
     if (!players) return;
 
+    let allReady = true;
+    let playerCount = 0;
+
     Object.keys(players).forEach(key => {
         const p = players[key];
-        const isCurrent = (key === playerFirebaseRef.key);
+        const isMe = (key === playerFirebaseRef.key);
+        if (!p.ready) allReady = false;
+        playerCount++;
 
         const item = document.createElement('div');
-        item.className = 'lobby-player-item' + (isCurrent ? ' current-player' : '');
+        item.className = 'lobby-player-item' + (isMe ? ' current-player' : '');
+        item.style.color = p.ready ? '#4caf50' : '#ff9800';
+
         item.innerHTML = `
-            <span class="status-dot online"></span> 
-            <span>${p.name}</span>
-            ${isCurrent ? ' (Ty)' : ''}
+            <span class="status-dot ${p.ready ? 'online' : 'away'}"></span> 
+            <span>${p.name} ${isMe ? ' (Ty)' : ''}</span>
+            <span style="font-size: 0.8em; margin-left: 10px;">${p.ready ? '[READY]' : '[ČEKÁ]'}</span>
         `;
         listEl.appendChild(item);
     });
+
+    // SPRÁVA TLAČÍTKA START
+    const startBtn = document.getElementById('start-online-game-btn');
+    if (isHost) {
+        startBtn.style.display = 'block';
+        startBtn.disabled = !allReady || playerCount < 2;
+        startBtn.style.opacity = startBtn.disabled ? '0.5' : '1';
+    } else {
+        startBtn.style.display = 'none';
+    }
 }
 
 // Listenery pro hlavní menu

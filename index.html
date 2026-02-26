@@ -43,9 +43,12 @@
             </div>
             <h3>Čekání na protihráče...</h3>
 
-            <button id="start-online-game-btn" onclick="hostStartGame()"
-                style="margin-top: 20px; background: #2e7d32;">⚔️ Start hry</button>
-            <button id="copy-lobby-btn" style="margin-top: 10px;">🔗 Kopírovat odkaz pro pozvání</button>
+            <div id="lobby-controls" style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+                <button id="ready-btn" class="menu-btn ready-btn" onclick="toggleReady()">Ready</button>
+                <button id="start-online-game-btn" onclick="hostStartGame()"
+                    style="background: #2e7d32; display: none;">⚔️ Start hry</button>
+                <button id="copy-lobby-btn" class="menu-btn">🔗 Kopírovat odkaz pro pozvání</button>
+            </div>
         </div>
         <button class="back-btn" onclick="showScreen('mode-selection')">Zpět do výběru</button>
     </div>

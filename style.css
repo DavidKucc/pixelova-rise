@@ -441,3 +441,32 @@ canvas {
     color: #888;
     cursor: not-allowed;
 }
+
+/* --- LOBBY IMPROVEMENTS --- */
+.ready-btn {
+    background: #555 !important;
+    transition: all 0.3s ease;
+}
+
+.ready-active {
+    background: #4caf50 !important;
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+    transform: scale(1.05);
+}
+
+#start-online-game-btn:disabled {
+    cursor: not-allowed;
+    filter: grayscale(1);
+    opacity: 0.5;
+}
+
+.lobby-player-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin-bottom: 5px;
+    width: 320px;
+    justify-content: space-between;
+}
