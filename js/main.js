@@ -69,6 +69,9 @@ window.showScreen = function (screenId) {
 
 // Funkce pro připojení do Firebase databáze
 function joinFirebaseLobby(nickname) {
+    const params = new URLSearchParams(window.location.search);
+    const paramsReady = !!params.get('lobby');
+
     if (!currentLobbyId) {
         // Pokud zakládáme novou hru, vygenerujeme ID
         currentLobbyId = "lobby_" + Math.random().toString(36).substr(2, 9);
@@ -82,8 +85,15 @@ function joinFirebaseLobby(nickname) {
     // Přidat sebe do seznamu
     playerFirebaseRef = push(lobbyPlayersRef);
 
-    // JSOU JSME HOST? (Pokud v lobby ještě nikdo není)
+    // JSME HOST?
+    // Pokud jsme ID lobby právě teď vygenerovali (viz řádek výše), jsme hostitel.
+    if (!paramsReady) {
+        isHost = true;
+        console.log("[LOBBY] Jsi hostitelem této bitvy.");
+    }
+
     onValue(lobbyPlayersRef, (snapshot) => {
+        // Fallback: Pokud v lobby ještě nikdo není, jsme první = host
         if (!snapshot.exists()) {
             isHost = true;
         }
@@ -182,13 +192,15 @@ function updateLobbyUI(players) {
 
     // SPRÁVA TLAČÍTKA START
     const startBtn = document.getElementById('start-online-game-btn');
-    if (isHost) {
-        startBtn.style.display = 'block';
-        // Tlačítko start je aktivní jen když jsou všichni Ready (včetně hostitele) a jsou aspoň 2
-        startBtn.disabled = !allReady || playerCount < 2;
-        startBtn.style.opacity = startBtn.disabled ? '0.5' : '1';
-    } else {
-        startBtn.style.display = 'none';
+    if (startBtn) {
+        if (isHost) {
+            startBtn.style.display = 'block';
+            // Tlačítko start je aktivní jen když jsou všichni Ready (včetně hostitele) a jsou aspoň 2
+            startBtn.disabled = !allReady || playerCount < 2;
+            startBtn.style.opacity = startBtn.disabled ? '0.5' : '1';
+        } else {
+            startBtn.style.display = 'none';
+        }
     }
 }
 
