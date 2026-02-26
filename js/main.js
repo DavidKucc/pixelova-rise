@@ -1,7 +1,7 @@
 // js/main.js
-console.log('[DEBUG] main.js loaded v=133');
+console.log('[DEBUG] main.js loaded v=134');
 
-import { initGame } from './modules/game.js?v=132';
+import { initGame } from './modules/game.js?v=134';
 
 // --- FIREBASE KONFIGURACE (Doplněno od uživatele) ---
 const firebaseConfig = {
@@ -138,8 +138,12 @@ window.hostStartGame = function () {
 
 function startGameLocally() {
     console.log("HRA STARTUJE!");
-    window.showScreen('game-ui'); // Oprava ID obrazovky
-    initGame();
+    window.showScreen('game-ui');
+
+    // Malá prodleva pro jistotu, že UI je vykreslené
+    setTimeout(() => {
+        initGame();
+    }, 100);
 }
 
 function updateLobbyUI(players) {
@@ -173,6 +177,7 @@ function updateLobbyUI(players) {
     const startBtn = document.getElementById('start-online-game-btn');
     if (isHost) {
         startBtn.style.display = 'block';
+        // Tlačítko start je aktivní jen když jsou všichni Ready (včetně hostitele) a jsou aspoň 2
         startBtn.disabled = !allReady || playerCount < 2;
         startBtn.style.opacity = startBtn.disabled ? '0.5' : '1';
     } else {

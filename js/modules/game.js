@@ -1,16 +1,16 @@
-﻿console.log('[DEBUG] game.js loaded v=132');
+﻿console.log('[DEBUG] game.js loaded v=134');
 
-import * as C from './config.js?v=132';
-import { gameState, viewportState } from './state.js?v=132';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=132';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=132';
-import { attachEventListeners } from './input.js?v=132';
-import { gameLoop } from './renderer.js?v=132';
-import { runAIDecision } from './ai.js?v=132';
-import { Logger } from './logger.js?v=132';
+import * as C from './config.js?v=134';
+import { gameState, viewportState } from './state.js?v=134';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=134';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=134';
+import { attachEventListeners } from './input.js?v=134';
+import { gameLoop } from './renderer.js?v=134';
+import { runAIDecision } from './ai.js?v=134';
+import { Logger } from './logger.js?v=134';
 
 // --- MULTIPLAYER IMPORTY ---
-import { db, currentLobbyId } from '../main.js?v=132';
+import { db, currentLobbyId } from '../main.js?v=134';
 import { ref, push, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
 // Nový objekt pro definici hráčů a jejich barev
@@ -20,7 +20,7 @@ export const PLAYER_DEFINITIONS = {
 };
 
 export function initGame() {
-    console.log("[GAME] Inicializace hry v=132...");
+    console.log("[GAME] Inicializace hry v=134...");
     console.log("[GAME] Konfigurace:", { INITIAL_GOLD: C.INITIAL_GOLD, INITIAL_UNITS: C.INITIAL_UNITS });
 
     // Reset a inicializace stavu
@@ -61,7 +61,16 @@ export function initGame() {
     gameState.expeditionCounter = 0;
     gameState.fractionalUnits = 0;
 
-    // Vytvoření herního pole
+    // Vytvoření herního pole - SYNCHRONIZOVANÉ
+    if (currentLobbyId) {
+        syncWorldGeneration();
+    } else {
+        generateLocalWorld();
+    }
+}
+
+function generateLocalWorld() {
+    gameState.gameBoard = [];
     for (let y = 0; y < C.GRID_SIZE; y++) {
         const row = [];
         for (let x = 0; x < C.GRID_SIZE; x++) {
@@ -73,7 +82,58 @@ export function initGame() {
         }
         gameState.gameBoard.push(row);
     }
+    finishInit();
+}
 
+async function syncWorldGeneration() {
+    const worldRef = ref(db, `lobbies/${currentLobbyId}/world`);
+    const { isHost } = await import('../main.js?v=134');
+
+    if (isHost) {
+        console.log("[WORLD] Hostitel generuje svět...");
+        gameState.gameBoard = [];
+        const terrainData = []; // Zjednodušená data pro Firebase
+
+        for (let y = 0; y < C.GRID_SIZE; y++) {
+            const row = [];
+            const terrainRow = [];
+            for (let x = 0; x < C.GRID_SIZE; x++) {
+                let terrain = 'none';
+                if (Math.random() < C.TERRAIN_DENSITY) {
+                    terrain = Math.random() < 0.6 ? 'forest' : 'road';
+                }
+                row.push({ x, y, ownerId: null, structureId: null, terrain, visibleTo: [] });
+                terrainRow.push(terrain === 'none' ? 0 : (terrain === 'forest' ? 1 : 2));
+            }
+            gameState.gameBoard.push(row);
+            terrainData.push(terrainRow);
+        }
+        // Uložit do Firebase (může to být velké, ale pro 400x400 zkusíme zjednodušeně nebo aspoň seed)
+        // Aby to bylo rychlé, pošleme jen seed nebo stručnou mapu.
+        set(worldRef, { terrain: terrainData, seed: Math.random() });
+        finishInit();
+    } else {
+        console.log("[WORLD] Klient čeká na data světa...");
+        onValue(worldRef, (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val().terrain;
+                gameState.gameBoard = [];
+                for (let y = 0; y < C.GRID_SIZE; y++) {
+                    const row = [];
+                    for (let x = 0; x < C.GRID_SIZE; x++) {
+                        const tVal = data[y][x];
+                        const terrain = tVal === 0 ? 'none' : (tVal === 1 ? 'forest' : 'road');
+                        row.push({ x, y, ownerId: null, structureId: null, terrain, visibleTo: [] });
+                    }
+                    gameState.gameBoard.push(row);
+                }
+                finishInit();
+            }
+        }, { onlyOnce: true });
+    }
+}
+
+function finishInit() {
     // Základny
     const baseSize = 6;
     const humanBaseX = 50;
@@ -88,6 +148,10 @@ export function initGame() {
     if (currentLobbyId) {
         setupMultiplayerSync();
     }
+
+    // ÚVODNÍ ODHALENÍ MAPY (aby nebyla černá obrazovka!)
+    revealMapAround(humanBaseX, humanBaseY, 20, 'human');
+    revealMapAround(enemyBaseX, enemyBaseY, 20, 'enemy');
 
     // Náhodné struktury
     for (let i = 0; i < C.NUM_STRUCTURES; i++) {
@@ -432,7 +496,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = 50
 
     // MULTIPLAYER SYNC
     if (currentLobbyId && playerId === 'human') {
-        import('../main.js?v=132').then(m => {
+        import('../main.js?v=134').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
