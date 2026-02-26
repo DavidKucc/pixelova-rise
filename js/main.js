@@ -1,7 +1,7 @@
 // js/main.js
-console.log('[DEBUG] main.js loaded v=131');
+console.log('[DEBUG] main.js loaded v=132');
 
-import { initGame } from './modules/game.js?v=131';
+import { initGame } from './modules/game.js?v=132';
 
 // --- FIREBASE KONFIGURACE (Doplněno od uživatele) ---
 const firebaseConfig = {
@@ -20,10 +20,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 import { getDatabase, ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
 const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+export const db = getDatabase(app);
 
-let currentLobbyId = null;
-let playerFirebaseRef = null;
+export let currentLobbyId = null;
+export let playerFirebaseRef = null;
 
 // Funkce pro detekci parametrů v URL při načtení
 function checkUrlParams() {
@@ -85,6 +85,29 @@ function joinFirebaseLobby(nickname) {
         const players = snapshot.val();
         updateLobbyUI(players);
     });
+
+    // POSLOUCHAT START HRY (od hostitele nebo synchronizovaně)
+    const gameStatusRef = ref(db, `lobbies/${currentLobbyId}/status`);
+    onValue(gameStatusRef, (snapshot) => {
+        if (snapshot.val() === 'started') {
+            startGameLocally();
+        }
+    });
+}
+
+// Tuto funkci volá hostitel kliknutím na "Start" v Lobby
+window.hostStartGame = function () {
+    if (!currentLobbyId) return;
+    const gameStatusRef = ref(db, `lobbies/${currentLobbyId}/status`);
+    set(gameStatusRef, 'started').catch(err => {
+        console.error("Chyba při startu hry:", err);
+    });
+};
+
+function startGameLocally() {
+    console.log("HRA STARTUJE!");
+    showScreen('game-container');
+    initGame();
 }
 
 function updateLobbyUI(players) {

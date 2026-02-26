@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pixelová Říše - Vylepšená Verze</title>
-    <link rel="stylesheet" href="style.css?v=131">
+    <link rel="stylesheet" href="style.css?v=132">
 </head>
 
 <body>
@@ -43,7 +43,9 @@
             </div>
             <h3>Čekání na protihráče...</h3>
 
-            <button id="copy-lobby-btn" style="margin-top: 20px;">🔗 Kopírovat odkaz pro pozvání</button>
+            <button id="start-online-game-btn" onclick="hostStartGame()"
+                style="margin-top: 20px; background: #2e7d32;">⚔️ Start hry</button>
+            <button id="copy-lobby-btn" style="margin-top: 10px;">🔗 Kopírovat odkaz pro pozvání</button>
         </div>
         <button class="back-btn" onclick="showScreen('mode-selection')">Zpět do výběru</button>
     </div>
@@ -100,7 +102,7 @@
     </div>
 
     <!-- ZMĚNA ZDE: Skript je nyní modul a odkazuje na main.js -->
-    <script type="module" src="js/main.js?v=131"></script>
+    <script type="module" src="js/main.js?v=132"></script>
 
 </body>
 

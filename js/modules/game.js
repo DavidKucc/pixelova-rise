@@ -1,22 +1,26 @@
-﻿console.log('[DEBUG] game.js loaded v=131');
+﻿console.log('[DEBUG] game.js loaded v=132');
 
-import * as C from './config.js?v=131';
-import { gameState, viewportState } from './state.js?v=131';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=131';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=131';
-import { attachEventListeners } from './input.js?v=131';
-import { gameLoop } from './renderer.js?v=131';
-import { runAIDecision } from './ai.js?v=131';
-import { Logger } from './logger.js?v=131';
+import * as C from './config.js?v=132';
+import { gameState, viewportState } from './state.js?v=132';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=132';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=132';
+import { attachEventListeners } from './input.js?v=132';
+import { gameLoop } from './renderer.js?v=132';
+import { runAIDecision } from './ai.js?v=132';
+import { Logger } from './logger.js?v=132';
+
+// --- MULTIPLAYER IMPORTY ---
+import { db, currentLobbyId } from '../main.js?v=132';
+import { ref, push, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
 // Nový objekt pro definici hráčů a jejich barev
 export const PLAYER_DEFINITIONS = {
-    'human': { name: "Hráč", color: '#03A9F4', baseColor: '#29B6F6', borderColor: '#81D4FA', type: 'human' },
-    'ai_1': { name: "Orkské Hordy", color: '#b71c1c', baseColor: '#d32f2f', borderColor: '#ef5350', type: 'ai' }
+    'human': { name: "Hráč 1", color: '#03A9F4', baseColor: '#29B6F6', borderColor: '#81D4FA', type: 'human' },
+    'enemy': { name: "Hráč 2", color: '#b71c1c', baseColor: '#d32f2f', borderColor: '#ef5350', type: 'human' }
 };
 
 export function initGame() {
-    console.log("[GAME] Inicializace hry v=131...");
+    console.log("[GAME] Inicializace hry v=132...");
     console.log("[GAME] Konfigurace:", { INITIAL_GOLD: C.INITIAL_GOLD, INITIAL_UNITS: C.INITIAL_UNITS });
 
     // Reset a inicializace stavu
@@ -76,9 +80,14 @@ export function initGame() {
     const humanBaseY = 50;
     createStructure('base', humanBaseX, humanBaseY, baseSize, baseSize, { name: 'Hlavní stan' }, 'human');
 
-    const aiBaseX = C.GRID_SIZE - 50;
-    const aiBaseY = C.GRID_SIZE - 50;
-    createStructure('base', aiBaseX, aiBaseY, baseSize, baseSize, { name: 'Válečný tábor' }, 'ai_1');
+    const enemyBaseX = C.GRID_SIZE - 50;
+    const enemyBaseY = C.GRID_SIZE - 50;
+    createStructure('base', enemyBaseX, enemyBaseY, baseSize, baseSize, { name: 'Válečný tábor' }, 'enemy');
+
+    // MULTIPLAYER SYNC: Připojit se k odběru cizích expedic
+    if (currentLobbyId) {
+        setupMultiplayerSync();
+    }
 
     // Náhodné struktury
     for (let i = 0; i < C.NUM_STRUCTURES; i++) {
@@ -169,44 +178,77 @@ function gameTick() {
                 gameState.needsRedraw = true;
             }
 
-            // MERGE PASS (Liquid Merge): Pokud se k sobě armády přiblíží, sloučí se
-            for (let i = player.activeExpeditions.length - 1; i >= 0; i--) {
-                for (let j = i - 1; j >= 0; j--) {
-                    const e1 = player.activeExpeditions[i];
-                    const e2 = player.activeExpeditions[j];
-
-                    const p1X = e1.startX + (e1.targetX - e1.startX) * e1.progress;
-                    const p1Y = e1.startY + (e1.targetY - e1.startY) * e1.progress;
-                    const p2X = e2.startX + (e2.targetX - e2.startX) * e2.progress;
-                    const p2Y = e2.startY + (e2.targetY - e2.startY) * e2.progress;
-
-                    const dist = Math.hypot(p1X - p2X, p1Y - p2Y);
-
-                    // Pokud jsou blíž než 0.8 buňky, sloučíme je
-                    if (dist < 0.8) {
-                        // Sjednocení e1 do e2
-                        e2.unitsLeft += e1.unitsLeft;
-                        e2.initialUnits += e1.unitsLeft; // Zvětšení vizuálního mraku
-
-                        // Přenos výběru
-                        if (gameState.selectedExpeditionIds.includes(e1.id)) {
-                            gameState.selectedExpeditionIds = gameState.selectedExpeditionIds.filter(id => id !== e1.id);
-                            if (!gameState.selectedExpeditionIds.includes(e2.id)) {
-                                gameState.selectedExpeditionIds.push(e2.id);
-                            }
-                        }
-
-                        // e1 zaniká
-                        player.activeExpeditions.splice(i, 1);
-                        logMessage(`Armády se plynule spojily v silnější oddíl o ${e2.unitsLeft} mužích.`, 'win');
-                        break; // i-tá expedice zmizela, jdeme na další i
-                    }
-                }
-            }
+            // BOJOVÝ SYSTÉM (Meat Grinder)
+            handleCombatBetweenExpeditions(playerId);
         }
     }
     updateUI();
     updateExpeditionsPanel();
+}
+
+function handleCombatBetweenExpeditions(p1Id) {
+    const p1 = gameState.players[p1Id];
+    if (!p1) return;
+
+    for (const p2Id in gameState.players) {
+        if (p1Id === p2Id) continue;
+        const p2 = gameState.players[p2Id];
+
+        p1.activeExpeditions.forEach(e1 => {
+            p2.activeExpeditions.forEach(e2 => {
+                const e1X = e1.startX + (e1.targetX - e1.startX) * e1.progress;
+                const e1Y = e1.startY + (e1.targetY - e1.startY) * e1.progress;
+                const e2X = e2.startX + (e2.targetX - e2.startX) * e2.progress;
+                const e2Y = e2.startY + (e2.targetY - e2.startY) * e2.progress;
+
+                const dist = Math.hypot(e1X - e2X, e1Y - e2Y);
+
+                if (dist < 1.5) { // Dosah boje
+                    const cell = gameState.gameBoard[Math.round(e1Y)]?.[Math.round(e1X)];
+                    const terrainWidth = (cell?.terrain === 'forest') ? 0.2 : 1.0;
+
+                    // Výpočet ztrát (zjednodušený Meat Grinder)
+                    const baseLoss = 2 * terrainWidth;
+                    e1.unitsLeft -= baseLoss;
+                    e2.unitsLeft -= baseLoss;
+
+                    // SYSTÉM PANIKY
+                    if (e1.unitsLeft < e1.initialUnits * 0.5) {
+                        e1.panic = true;
+                        redirectExpeditionToHome(p1Id, e1);
+                    }
+                    if (e2.unitsLeft < e2.initialUnits * 0.5) {
+                        e2.panic = true;
+                        redirectExpeditionToHome(p2Id, e2);
+                    }
+
+                    if (e1.unitsLeft <= 0) removeExpedition(p1Id, e1.id);
+                    if (e2.unitsLeft <= 0) removeExpedition(p2Id, e2.id);
+
+                    gameState.needsRedraw = true;
+                }
+            });
+        });
+    }
+}
+
+function redirectExpeditionToHome(playerId, exp) {
+    const base = Array.from(gameState.structures.values()).find(s => s.ownerId === playerId && s.type.includes('base'));
+    if (base) {
+        if (!exp.isReturning) {
+            logMessage(`Expedice #${exp.id} panikaří a ustupuje k základně!`, 'warn');
+            exp.isReturning = true;
+            redirectExpedition(playerId, exp.id, base.x + base.w / 2, base.y + base.h / 2);
+        }
+    }
+}
+
+function removeExpedition(playerId, expId) {
+    const player = gameState.players[playerId];
+    if (player) {
+        player.activeExpeditions = player.activeExpeditions.filter(e => e.id !== expId);
+        logMessage(`Expedice #${expId} byla zničena v boji.`, 'error');
+    }
 }
 
 function handleExpeditionArrival(playerId, exp) {
@@ -386,7 +428,46 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = 50
     player.activeExpeditions.push(exp);
     updateExpeditionsPanel();
     updateUI();
-    logMessage(`Expedice #${exp.id} vyslána na[${targetX}, ${targetY}] s ${units} jednotkami.`);
+    logMessage(`Expedice #${exp.id} vyslána na [${targetX}, ${targetY}] s ${units} jednotkami.`);
+
+    // MULTIPLAYER SYNC
+    if (currentLobbyId && playerId === 'human') {
+        import('../main.js?v=132').then(m => {
+            m.syncExpeditionToFirebase(playerId, exp);
+        });
+    }
+}
+
+export function setupMultiplayerSync() {
+    if (!currentLobbyId) return;
+
+    // Poslouchat expedice ostatních hráčů
+    const expeditionsRef = ref(db, `lobbies/${currentLobbyId}/expeditions/enemy`);
+    onValue(expeditionsRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        // Resetovat cizí expedice v lokálním stavu a nahrát nové
+        const enemyPlayer = gameState.players['enemy'];
+        if (enemyPlayer) {
+            enemyPlayer.activeExpeditions = [];
+            for (const id in data) {
+                const remote = data[id];
+                enemyPlayer.activeExpeditions.push({
+                    id: remote.id,
+                    startX: remote.startX,
+                    startY: remote.startY,
+                    targetX: remote.targetX,
+                    targetY: remote.targetY,
+                    initialUnits: remote.units,
+                    unitsLeft: remote.units,
+                    progress: 0,
+                    arrived: false,
+                    isRemote: true // Příznak, že jde o cizí jednotku
+                });
+            }
+        }
+    });
 }
 
 export function redirectExpedition(playerId, expId, targetX, targetY) {
