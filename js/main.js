@@ -1,7 +1,7 @@
 // js/main.js
-console.log('[DEBUG] main.js loaded v=134');
+console.log('[DEBUG] main.js loaded v=135');
 
-import { initGame } from './modules/game.js?v=134';
+import { initGame } from './modules/game.js?v=135';
 
 // --- FIREBASE KONFIGURACE (Doplněno od uživatele) ---
 const firebaseConfig = {
@@ -28,23 +28,30 @@ export let isHost = false;
 export let isReady = false;
 
 // Funkce pro detekci parametrů v URL při načtení
+// Spustit kontrolu URL při startu
+document.addEventListener('DOMContentLoaded', () => {
+    checkUrlParams();
+});
+
 function checkUrlParams() {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('mode') === 'online') {
+    if (params.get('mode') === 'online' && params.get('lobby')) {
+        currentLobbyId = params.get('lobby');
+
+        // Změna UI hlavního menu pro připojujícího se hráče
         const titleEl = document.querySelector('#main-menu h1');
         if (titleEl) titleEl.textContent = 'Připojuješ se k bitvě!';
-        const startBtn = document.getElementById('start-game-btn');
-        if (startBtn) startBtn.textContent = 'Připojit se';
 
-        // Pokud v linku není ID lobby, vytvoříme ho (pro hostitele)
-        currentLobbyId = params.get('lobby') || null;
+        const startBtn = document.getElementById('start-game-btn');
+        if (startBtn) {
+            startBtn.innerHTML = '🛡️ Vstoupit do Lobby';
+            startBtn.style.background = '#1976D2';
+        }
+
+        // Pokud klikne na start v tomto módu, rovnou ho to hodí do lobby po vyplnění jména
+        console.log("[DEBUG] Detekována pozvánka do lobby:", currentLobbyId);
     }
 }
-
-// Spustit kontrolu URL
-checkUrlParams();
-
-// Globální funkce pro přepínání obrazovek
 window.showScreen = function (screenId) {
     document.querySelectorAll('.menu-screen').forEach(s => s.style.display = 'none');
     const target = document.getElementById(screenId);

@@ -1,16 +1,16 @@
-﻿console.log('[DEBUG] game.js loaded v=134');
+﻿console.log('[DEBUG] game.js loaded v=135');
 
-import * as C from './config.js?v=134';
-import { gameState, viewportState } from './state.js?v=134';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=134';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=134';
-import { attachEventListeners } from './input.js?v=134';
-import { gameLoop } from './renderer.js?v=134';
-import { runAIDecision } from './ai.js?v=134';
-import { Logger } from './logger.js?v=134';
+import * as C from './config.js?v=135';
+import { gameState, viewportState } from './state.js?v=135';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=135';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=135';
+import { attachEventListeners } from './input.js?v=135';
+import { gameLoop } from './renderer.js?v=135';
+import { runAIDecision } from './ai.js?v=135';
+import { Logger } from './logger.js?v=135';
 
 // --- MULTIPLAYER IMPORTY ---
-import { db, currentLobbyId } from '../main.js?v=134';
+import { db, currentLobbyId } from '../main.js?v=135';
 import { ref, push, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
 // Nový objekt pro definici hráčů a jejich barev
@@ -20,7 +20,7 @@ export const PLAYER_DEFINITIONS = {
 };
 
 export function initGame() {
-    console.log("[GAME] Inicializace hry v=134...");
+    console.log("[GAME] Inicializace hry v=135...");
     console.log("[GAME] Konfigurace:", { INITIAL_GOLD: C.INITIAL_GOLD, INITIAL_UNITS: C.INITIAL_UNITS });
 
     // Reset a inicializace stavu
@@ -386,7 +386,7 @@ function claimAreaAround(cx, cy, units, playerId) {
     }
 }
 
-function recalculatePlayerIncome(playerId) {
+export function recalculatePlayerIncome(playerId) {
     const player = gameState.players[playerId];
     if (!player) return;
 
@@ -496,7 +496,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = 50
 
     // MULTIPLAYER SYNC
     if (currentLobbyId && playerId === 'human') {
-        import('../main.js?v=134').then(m => {
+        import('../main.js?v=135').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
