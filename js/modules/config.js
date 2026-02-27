@@ -1,4 +1,4 @@
-﻿// js/modules/config.js v=141
+﻿// js/modules/config.js v=142
 // Všechny neměnné hodnoty, konstanty a statická data hry.
 
 export const GRID_SIZE = 400, INITIAL_GOLD = 500, INITIAL_UNITS = 20, INITIAL_CRYSTALS = 0;
@@ -17,7 +17,8 @@ export const BUILDINGS = {
 };
 
 export const CELL_COLORS = {
-    'hidden': '#282828',
+    'hidden': '#111',
+    'none': '#3d9440',
     'expanding': '#336e35',
     'owned-land': '#3d9440',
     'owned_base': '#5aab5d', 'owned_village': '#5aab5d', 'owned_mine': '#5aab5d', 'owned_crystal_mine': '#5aab5d',
@@ -27,8 +28,8 @@ export const CELL_COLORS = {
     'visible_crystal_mine': '#4dd0e1',
     'visible_ancient_library': '#673ab7',
     'visible_trading_post': '#ff9800',
-    'terrain-forest': '#1b5e20',
-    'terrain-road': '#a1887f'
+    'forest': '#1b5e20',
+    'road': '#a1887f'
 };
 
 export const STRUCTURE_ICONS = {
