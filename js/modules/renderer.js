@@ -1,10 +1,10 @@
 ﻿// js/modules/renderer.js
 // Vše co se týká kreslení na Canvas.
 
-import { ui } from './ui.js?v=141';
-import { gameState, viewportState } from './state.js?v=141';
-import * as C from './config.js?v=141';
-import { myPlayerId } from '../main.js?v=141';
+import { ui } from './ui.js?v=142';
+import { gameState, viewportState } from './state.js?v=142';
+import * as C from './config.js?v=142';
+import { myPlayerId } from '../main.js?v=142';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 export function gameLoop() {
@@ -35,8 +35,8 @@ function drawBoard() {
             let finalColor = CELL_COLORS['hidden'];
 
             // MULTIPLAYER: Vidím jen to co prozkoumal "já"
-            if (cell.visibleTo.includes(myPlayerId)) {
-                finalColor = CELL_COLORS[cell.terrain] || '#222';
+            if (cell.booleanVisible || cell.visibleTo.includes(myPlayerId)) {
+                finalColor = CELL_COLORS[cell.terrain] || CELL_COLORS['none'] || '#222';
             }
 
             ctx.fillStyle = finalColor;

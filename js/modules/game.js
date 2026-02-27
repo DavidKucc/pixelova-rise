@@ -1,16 +1,16 @@
-﻿console.log('[DEBUG] game.js loaded v=141');
+﻿console.log('[DEBUG] game.js loaded v=142');
 
-import * as C from './config.js?v=141';
-import { gameState, viewportState } from './state.js?v=141';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=141';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=141';
-// import { attachEventListeners } from './input.js?v=141'; // ROZBITA KRUHOVÁ ZÁVISLOST -> Volá main.js
-import { gameLoop } from './renderer.js?v=141';
-import { runAIDecision } from './ai.js?v=141';
-import { Logger } from './logger.js?v=141';
+import * as C from './config.js?v=142';
+import { gameState, viewportState } from './state.js?v=142';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=142';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=142';
+// import { attachEventListeners } from './input.js?v=142'; // ROZBITA KRUHOVÁ ZÁVISLOST -> Volá main.js
+import { gameLoop } from './renderer.js?v=142';
+import { runAIDecision } from './ai.js?v=142';
+import { Logger } from './logger.js?v=142';
 
 // --- MULTIPLAYER IMPORTY ---
-import { db, currentLobbyId, myPlayerId } from '../main.js?v=141';
+import { db, currentLobbyId, myPlayerId } from '../main.js?v=142';
 import { ref, push, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
 // Nový objekt pro definici hráčů a jejich barev
@@ -20,7 +20,7 @@ export const PLAYER_DEFINITIONS = {
 };
 
 export function initGame() {
-    console.log("[GAME] Inicializace hry v=141...");
+    console.log("[GAME] Inicializace hry v=142...");
     console.log("[GAME] Konfigurace:", { INITIAL_GOLD: C.INITIAL_GOLD, INITIAL_UNITS: C.INITIAL_UNITS });
 
     // Reset a inicializace stavu
@@ -87,7 +87,7 @@ function generateLocalWorld() {
 
 async function syncWorldGeneration() {
     const worldRef = ref(db, `lobbies/${currentLobbyId}/world`);
-    const { isHost } = await import('../main.js?v=141');
+    const { isHost } = await import('../main.js?v=142');
 
     if (isHost) {
         console.log("[WORLD] Hostitel generuje svět...");
@@ -172,8 +172,13 @@ function finishInit() {
     viewportState.scale = 0.5;
     const vp = document.getElementById('game-viewport');
     if (vp) {
-        viewportState.gridPos.x = vp.clientWidth / 2 - (humanBaseX * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
-        viewportState.gridPos.y = vp.clientHeight / 2 - (humanBaseY * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
+        // Focus na vlastní základnu: Hostitel vlevo nahoře, Klient vpravo dole
+        const focusX = (myPlayerId === 'human') ? humanBaseX : enemyBaseX;
+        const focusY = (myPlayerId === 'human') ? humanBaseY : enemyBaseY;
+
+        viewportState.gridPos.x = vp.clientWidth / 2 - (focusX * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
+        viewportState.gridPos.y = vp.clientHeight / 2 - (focusY * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
+        console.log(`[GAME] Kamera vycentrovaná na: [${focusX}, ${focusY}] pro ${myPlayerId}`);
     }
 
     // attachEventListeners(initGame); // VOLÁ MAIN.JS kvuli závislostem
@@ -241,7 +246,7 @@ function gameTick() {
                     const curX = Math.round(exp.startX + (exp.targetX - exp.startX) * exp.progress);
                     const curY = Math.round(exp.startY + (exp.targetY - exp.startY) * exp.progress);
                     const moveRevealRadius = Math.max(5, 2 + Math.floor(Math.sqrt(exp.unitsLeft) / 2));
-                    revealMapAround(curX, curY, moveRevealRadius);
+                    revealMapAround(curX, curY, moveRevealRadius, playerId);
                 }
 
                 gameState.needsRedraw = true;
@@ -501,7 +506,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = 50
 
     // MULTIPLAYER SYNC
     if (currentLobbyId && playerId === 'human') {
-        import('../main.js?v=141').then(m => {
+        import('../main.js?v=142').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -634,7 +639,7 @@ export function captureStructure(playerId, structId) {
     logMessage(`Budova ${struct.data.name} byla obsazena!`, 'win');
 }
 
-export function revealMapAround(cx, cy, radius, playerId = 'human') {
+export function revealMapAround(cx, cy, radius, playerId = myPlayerId) {
     for (let y = Math.max(0, cy - radius); y <= Math.min(C.GRID_SIZE - 1, cy + radius); y++) {
         for (let x = Math.max(0, cx - radius); x <= Math.min(C.GRID_SIZE - 1, cx + radius); x++) {
             const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);

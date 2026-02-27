@@ -1,8 +1,13 @@
 // js/main.js
-console.log('[DEBUG] main.js loaded v=141');
+if (window.MAIN_JS_INITIALIZED) {
+    console.warn('[ABORT] main.js už jednou běží. Ruším druhou instanci.');
+} else {
+    window.MAIN_JS_INITIALIZED = true;
+    console.log('[DEBUG] main.js loaded v=142');
+}
 
-import { initGame } from './modules/game.js?v=141';
-import { attachEventListeners } from './modules/input.js?v=141';
+import { initGame } from './modules/game.js?v=142';
+import { attachEventListeners } from './modules/input.js?v=142';
 
 export let myPlayerId = 'human'; // Default
 
@@ -75,8 +80,13 @@ window.showScreen = function (screenId) {
     }
 };
 
+// Pomocná proměnná pro zamezení duplicit v lobby
+let lobbyJoined = false;
+
 // Funkce pro připojení do Firebase databáze
 function joinFirebaseLobby(nickname) {
+    if (lobbyJoined) return;
+    lobbyJoined = true;
     const params = new URLSearchParams(window.location.search);
     const paramsReady = !!params.get('lobby');
 
