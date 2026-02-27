@@ -3,32 +3,12 @@ if (window.MAIN_JS_INITIALIZED) {
     console.warn('[ABORT] main.js už jednou běží. Ruším druhou instanci.');
 } else {
     window.MAIN_JS_INITIALIZED = true;
-    console.log('[DEBUG] main.js loaded v=145');
+    console.log('[DEBUG] main.js loaded v=146');
 }
 
-import { initGame } from './modules/game.js?v=145';
-import { attachEventListeners } from './modules/input.js?v=145';
-
-export let myPlayerId = 'human'; // Default
-
-// --- FIREBASE KONFIGURACE (Doplněno od uživatele) ---
-const firebaseConfig = {
-    apiKey: "AIzaSyC-cetbyAiUhe5pFJS7_byK7r_QfxREhAY",
-    authDomain: "pixelova-rise.firebaseapp.com",
-    databaseURL: "https://pixelova-rise-default-rtdb.firebaseio.com",
-    projectId: "pixelova-rise",
-    storageBucket: "pixelova-rise.firebasestorage.app",
-    messagingSenderId: "963499485506",
-    appId: "1:963499485506:web:a502932dc948df453980db",
-    measurementId: "G-L4JGKQ7P6K"
-};
-
-// Importy z Firebase SDK (ESM moduly)
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getDatabase, ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-
-const app = initializeApp(firebaseConfig);
-export const db = getDatabase(app);
+import { db } from './firebase-config.js?v=146';
+import { initGame } from './modules/game.js?v=146';
+import { attachEventListeners } from './modules/input.js?v=146';
 
 export let currentLobbyId = null;
 export let playerFirebaseRef = null;
