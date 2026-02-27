@@ -7,15 +7,23 @@ if (window.MAIN_JS_INITIALIZED) {
 }
 
 import { db } from './firebase-config.js?v=146';
+import { ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { initGame } from './modules/game.js?v=146';
 import { attachEventListeners } from './modules/input.js?v=146';
 
+import { gameState } from './modules/state.js?v=146';
+
+export let myPlayerId = 'human';
 export let currentLobbyId = null;
 export let playerFirebaseRef = null;
 export let isHost = false;
 
 function updatePlayerIdentity() {
     myPlayerId = isHost ? 'human' : 'enemy';
+    // Sync do globálního stavu
+    gameState.myPlayerId = myPlayerId;
+    gameState.isHost = isHost;
+    gameState.currentLobbyId = currentLobbyId;
     console.log(`[LOBBY] Moje ID hráče je: ${myPlayerId}`);
 }
 export let isReady = false;
