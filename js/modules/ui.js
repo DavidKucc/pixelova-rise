@@ -1,11 +1,11 @@
 ﻿// js/modules/ui.js
 // Zodpovídá za veškerou interakci s DOM elementy (vše mimo Canvas).
 
-console.log('[DEBUG] ui.js loaded v=140');
+console.log('[DEBUG] ui.js loaded v=141');
 
-import * as C from './config.js?v=140';
-import { gameState } from './state.js?v=140';
-import { myPlayerId } from '../main.js?v=140';
+import * as C from './config.js?v=141';
+import { gameState } from './state.js?v=141';
+import { myPlayerId } from '../main.js?v=141';
 
 function getEl(id) {
     const el = document.getElementById(id);
@@ -68,7 +68,7 @@ export function updateUI() {
 }
 
 export function updateSliderLabel() {
-    const player = gameState.players['human'];
+    const player = gameState.players[myPlayerId];
     if (!player) return;
     const slider = ui.slider;
     const sliderVal = ui.sliderValue;

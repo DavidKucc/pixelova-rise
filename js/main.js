@@ -1,7 +1,8 @@
 // js/main.js
-console.log('[DEBUG] main.js loaded v=140');
+console.log('[DEBUG] main.js loaded v=141');
 
-import { initGame } from './modules/game.js?v=140';
+import { initGame } from './modules/game.js?v=141';
+import { attachEventListeners } from './modules/input.js?v=141';
 
 export let myPlayerId = 'human'; // Default
 
@@ -165,10 +166,11 @@ function startGameLocally() {
     console.log("HRA STARTUJE!");
     window.showScreen('game-ui');
 
-    // Malá prodleva pro jistotu, že UI je vykreslené
+    // Malá prodleva pro jistotu, že UI je vykreslené a moduly jsou načtené
     setTimeout(() => {
         initGame();
-    }, 100);
+        attachEventListeners(initGame);
+    }, 150);
 }
 
 function updateLobbyUI(players) {

@@ -1,5 +1,5 @@
 ﻿// js/modules/state.js
-console.log('[DEBUG] state.js loaded v=140');
+console.log('[DEBUG] state.js loaded v=141');
 // Exportuje objekty, které drží veškerý měnitelný stav hry.
 // Místo hromady globálních proměnných máme jeden "zdroj pravdy".
 
