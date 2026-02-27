@@ -1,7 +1,7 @@
 ﻿// js/modules/ui.js
 // Zodpovídá za veškerou interakci s DOM elementy (vše mimo Canvas).
 
-console.log('[DEBUG] ui.js loaded v=146');
+console.log('[DEBUG] ui.js loaded v=147');
 
 import * as C from './config.js?v=146';
 import { gameState } from './state.js?v=146';
@@ -36,7 +36,7 @@ export const ui = {
 };
 
 export function updateUI() {
-    const player = gameState.players[myPlayerId];
+    const player = gameState.players[gameState.myPlayerId];
     if (!player) return;
 
     const stats = {
@@ -67,7 +67,7 @@ export function updateUI() {
 }
 
 export function updateSliderLabel() {
-    const player = gameState.players[myPlayerId];
+    const player = gameState.players[gameState.myPlayerId];
     if (!player) return;
     const slider = ui.slider;
     const sliderVal = ui.sliderValue;
@@ -78,7 +78,7 @@ export function updateSliderLabel() {
 }
 
 export function updateExpeditionsPanel() {
-    const player = gameState.players[myPlayerId];
+    const player = gameState.players[gameState.myPlayerId];
     const list = ui.expeditionList;
     if (!list || !player) return;
     list.innerHTML = '';
@@ -106,10 +106,10 @@ export function updateActionPanel() {
     if (!struct) return;
     let html = `<h3>${struct.data.name}</h3>`;
     const isOwned = struct.type.startsWith('owned_');
-    const player = gameState.players[myPlayerId];
+    const player = gameState.players[gameState.myPlayerId];
     if (!isOwned && player) {
         const canAfford = player.gold >= struct.data.cost;
-        html += `<button onclick="captureStructure('${myPlayerId}', ${struct.id})" ${!canAfford ? 'disabled' : ''}>Obsadit (${struct.data.cost}💰)</button>`;
+        html += `<button onclick="captureStructure('${gameState.myPlayerId}', ${struct.id})" ${!canAfford ? 'disabled' : ''}>Obsadit (${struct.data.cost}💰)</button>`;
     }
     panel.innerHTML = html;
 }

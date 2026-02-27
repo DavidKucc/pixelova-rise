@@ -1,16 +1,16 @@
-﻿console.log('[DEBUG] game.js loaded v=146');
+﻿console.log('[DEBUG] game.js loaded v=147');
 
-import * as C from './config.js?v=146';
-import { gameState, viewportState } from './state.js?v=146';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=146';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=146';
-import { gameLoop } from './renderer.js?v=146';
-import { runAIDecision } from './ai.js?v=146';
-import { Logger } from './logger.js?v=146';
+import * as C from './config.js?v=147';
+import { gameState, viewportState } from './state.js?v=147';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=147';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=147';
+import { gameLoop } from './renderer.js?v=147';
+import { runAIDecision } from './ai.js?v=147';
+import { Logger } from './logger.js?v=147';
 
 // --- MULTIPLAYER SYNC ---
 import { ref, push, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { db } from '../firebase-config.js?v=146';
+import { db } from '../firebase-config.js?v=147';
 
 export const PLAYER_DEFINITIONS = {
     'human': { name: "Hráč 1", color: '#03A9F4', baseColor: '#29B6F6', borderColor: '#81D4FA', type: 'human' },
@@ -18,7 +18,7 @@ export const PLAYER_DEFINITIONS = {
 };
 
 export function initGame(hostStatus = false, playerId = 'human', lobbyId = null) {
-    console.log(`[GAME] Inicializace hry v=146 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
+    console.log(`[GAME] Inicializace hry v=147 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
 
     // Uložení parametrů do globálního stavu (DŮLEŽITÉ!)
     gameState.isHost = hostStatus;
@@ -121,10 +121,10 @@ async function syncWorldGeneration() {
         console.log("[WORLD] Data světa nahrána.");
         finishInit();
     } else {
-        console.log(`[WORLD] Klient (${myPlayerId}) čeká na data světa v lobby ${currentLobbyId}...`);
+        console.log(`[WORLD] Klient (${gameState.myPlayerId}) čeká na data světa v lobby ${gameState.currentLobbyId}...`);
         const unsub = onValue(worldRef, (snapshot) => {
             if (snapshot.exists() && snapshot.val().terrain && snapshot.val().structures) {
-                console.log("[WORLD] Data světa dorazila! (v146)");
+                console.log("[WORLD] Data světa dorazila! (v147)");
                 const data = snapshot.val().terrain;
                 const remoteStructures = snapshot.val().structures;
 
@@ -524,7 +524,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = 50
 
     // MULTIPLAYER SYNC
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=146').then(m => {
+        import('../main.js?v=147').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }

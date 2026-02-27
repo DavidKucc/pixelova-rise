@@ -3,29 +3,23 @@ if (window.MAIN_JS_INITIALIZED) {
     console.warn('[ABORT] main.js už jednou běží. Ruším druhou instanci.');
 } else {
     window.MAIN_JS_INITIALIZED = true;
-    console.log('[DEBUG] main.js loaded v=146');
+    console.log('[DEBUG] main.js loaded v=147');
 }
 
-import { db } from './firebase-config.js?v=146';
+import { db } from './firebase-config.js?v=147';
 import { ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { initGame } from './modules/game.js?v=146';
-import { attachEventListeners } from './modules/input.js?v=146';
+import { initGame } from './modules/game.js?v=147';
+import { attachEventListeners } from './modules/input.js?v=147';
 
-import { gameState } from './modules/state.js?v=146';
+import { gameState } from './modules/state.js?v=147';
 
-export let myPlayerId = 'human';
-export let currentLobbyId = null;
 export let playerFirebaseRef = null;
-export let isHost = false;
 
 function updatePlayerIdentity() {
-    myPlayerId = isHost ? 'human' : 'enemy';
-    // Sync do globálního stavu
-    gameState.myPlayerId = myPlayerId;
-    gameState.isHost = isHost;
-    gameState.currentLobbyId = currentLobbyId;
-    console.log(`[LOBBY] Moje ID hráče je: ${myPlayerId}`);
+    gameState.myPlayerId = gameState.isHost ? 'human' : 'enemy';
+    console.log(`[LOBBY] Moje ID hráče je: ${gameState.myPlayerId}`);
 }
+export let isReady = false;
 export let isReady = false;
 
 // Funkce pro detekci parametrů v URL při načtení
@@ -37,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function checkUrlParams() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('mode') === 'online' && params.get('lobby')) {
-        currentLobbyId = params.get('lobby');
+        gameState.currentLobbyId = params.get('lobby');
 
         // Změna UI hlavního menu pro připojujícího se hráče
         const titleEl = document.querySelector('#main-menu h1');
@@ -78,11 +72,11 @@ function joinFirebaseLobby(nickname) {
     const params = new URLSearchParams(window.location.search);
     const paramsReady = !!params.get('lobby');
 
-    if (!currentLobbyId) {
+    if (!gameState.currentLobbyId) {
         // Pokud zakládáme novou hru, vygenerujeme ID
-        currentLobbyId = "lobby_" + Math.random().toString(36).substr(2, 9);
+        gameState.currentLobbyId = "lobby_" + Math.random().toString(36).substr(2, 9);
         // Upravit URL v prohlížeči bez reloadu
-        const newUrl = window.location.origin + window.location.pathname + `?mode=online&lobby=${currentLobbyId}`;
+        const newUrl = window.location.origin + window.location.pathname + `?mode=online&lobby=${gameState.currentLobbyId}`;
         window.history.replaceState({ path: newUrl }, '', newUrl);
     }
 
@@ -102,7 +96,7 @@ function joinFirebaseLobby(nickname) {
     onValue(lobbyPlayersRef, (snapshot) => {
         // Fallback: Pokud v lobby ještě nikdo není, jsme první = host
         if (!snapshot.exists()) {
-            isHost = true;
+            gameState.isHost = true;
         }
     }, { onlyOnce: true });
 
@@ -122,7 +116,7 @@ function joinFirebaseLobby(nickname) {
     });
 
     // POSLOUCHAT START HRY (od hostitele nebo synchronizovaně)
-    const gameStatusRef = ref(db, `lobbies/${currentLobbyId}/status`);
+    const gameStatusRef = ref(db, `lobbies/${gameState.currentLobbyId}/status`);
     onValue(gameStatusRef, (snapshot) => {
         if (snapshot.val() === 'started') {
             startGameLocally();
@@ -138,21 +132,21 @@ window.toggleReady = function () {
     btn.textContent = isReady ? 'Unready' : 'Ready';
     btn.classList.toggle('ready-active', isReady);
 
-    set(ref(db, `lobbies/${currentLobbyId}/players/${playerFirebaseRef.key}/ready`), isReady);
+    set(ref(db, `lobbies/${gameState.currentLobbyId}/players/${playerFirebaseRef.key}/ready`), isReady);
 };
 
 // Tuto funkci volá hostitel kliknutím na "Start" v Lobby
 window.hostStartGame = function () {
-    if (!currentLobbyId || !isHost) return;
+    if (!gameState.currentLobbyId || !gameState.isHost) return;
 
     // Kontrola zda jsou všichni ready (kromě možná hostitele, ten dává start)
-    const playersRef = ref(db, `lobbies/${currentLobbyId}/players`);
+    const playersRef = ref(db, `lobbies/${gameState.currentLobbyId}/players`);
     onValue(playersRef, (snapshot) => {
         const players = snapshot.val();
         const allReady = Object.values(players).every(p => p.ready);
 
         if (allReady) {
-            const gameStatusRef = ref(db, `lobbies/${currentLobbyId}/status`);
+            const gameStatusRef = ref(db, `lobbies/${gameState.currentLobbyId}/status`);
             set(gameStatusRef, 'started');
         } else {
             alert('Všichni hráči musí být Ready před startem!');
@@ -166,8 +160,8 @@ function startGameLocally() {
 
     // Malá prodleva pro jistotu, že UI je vykreslené a moduly jsou načtené
     setTimeout(() => {
-        initGame(isHost, myPlayerId, currentLobbyId);
-        attachEventListeners(() => initGame(isHost, myPlayerId, currentLobbyId));
+        initGame(gameState.isHost, gameState.myPlayerId, gameState.currentLobbyId);
+        attachEventListeners(() => initGame(gameState.isHost, gameState.myPlayerId, gameState.currentLobbyId));
     }, 150);
 }
 
@@ -201,7 +195,7 @@ function updateLobbyUI(players) {
     // SPRÁVA TLAČÍTKA START
     const startBtn = document.getElementById('start-online-game-btn');
     if (startBtn) {
-        if (isHost) {
+        if (gameState.isHost) {
             startBtn.style.display = 'block';
             // Tlačítko start je aktivní jen když jsou všichni Ready (včetně hostitele) a jsou aspoň 2
             startBtn.disabled = !allReady || playerCount < 2;
@@ -231,7 +225,7 @@ document.getElementById('start-game-btn').addEventListener('click', () => {
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
     if (params.get('mode') === 'online' && !isLocal) {
-        currentLobbyId = params.get('lobby'); // Uložit ID z linku pro join
+        gameState.currentLobbyId = params.get('lobby'); // Uložit ID z linku pro join
         window.showScreen('lobby-screen');
     } else {
         window.showScreen('mode-selection');
@@ -280,7 +274,7 @@ document.getElementById('copy-lobby-btn').addEventListener('click', async () => 
 });
 
 window.onerror = function (msg, url, line) {
-    console.error(`ERROR v131: ${msg} at ${line}`);
+    console.error(`ERROR v147: ${msg} at ${line}`);
     return false;
 };
 // --- SYNCHRONIZAČNÍ EXPORTY ---
