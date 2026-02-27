@@ -1,11 +1,10 @@
 ﻿// js/modules/ui.js
 // Zodpovídá za veškerou interakci s DOM elementy (vše mimo Canvas).
 
-console.log('[DEBUG] ui.js loaded v=143');
+console.log('[DEBUG] ui.js loaded v=144');
 
-import * as C from './config.js?v=143';
-import { gameState } from './state.js?v=143';
-import { myPlayerId } from '../main.js?v=143';
+import * as C from './config.js?v=144';
+import { gameState } from './state.js?v=144';
 
 function getEl(id) {
     const el = document.getElementById(id);
@@ -138,7 +137,7 @@ export function removeContextMenu() {
 }
 
 window.tradeWithPost = () => {
-    const player = gameState.players[myPlayerId];
+    const player = gameState.players[gameState.myPlayerId];
     if (player && player.units >= 5) {
         player.units -= 5; player.gold += 200;
         updateUI(); logMessage(`Vyměněno 5⚔️ za 200💰.`, 'win');

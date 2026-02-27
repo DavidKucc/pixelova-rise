@@ -1,17 +1,18 @@
-﻿console.log('[DEBUG] game.js loaded v=143');
+﻿console.log('[DEBUG] game.js loaded v=144');
 
-import * as C from './config.js?v=143';
-import { gameState, viewportState } from './state.js?v=143';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=143';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=143';
-// import { attachEventListeners } from './input.js?v=143'; // ROZBITA KRUHOVÁ ZÁVISLOST -> Volá main.js
-import { gameLoop } from './renderer.js?v=143';
-import { runAIDecision } from './ai.js?v=143';
-import { Logger } from './logger.js?v=143';
+import * as C from './config.js?v=144';
+import { gameState, viewportState } from './state.js?v=144';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=144';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=144';
+// import { attachEventListeners } from './input.js?v=144'; // ROZBITA KRUHOVÁ ZÁVISLOST -> Volá main.js
+import { gameLoop } from './renderer.js?v=144';
+import { runAIDecision } from './ai.js?v=144';
+import { Logger } from './logger.js?v=144';
 
-// --- MULTIPLAYER IMPORTY ---
-import { db, currentLobbyId, myPlayerId } from '../main.js?v=143';
+// --- MULTIPLAYER SYNC ---
+// Stav se ukládá do gameState v state.js přes initGame
 import { ref, push, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { db } from '../main.js?v=144';
 
 // Nový objekt pro definici hráčů a jejich barev
 export const PLAYER_DEFINITIONS = {
@@ -19,8 +20,13 @@ export const PLAYER_DEFINITIONS = {
     'enemy': { name: "Hráč 2", color: '#b71c1c', baseColor: '#d32f2f', borderColor: '#ef5350', type: 'human' }
 };
 
-export function initGame() {
-    console.log("[GAME] Inicializace hry v=143...");
+export function initGame(hostStatus = false, playerId = 'human', lobbyId = null) {
+    console.log(`[GAME] Inicializace hry v=144 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
+
+    // Uložení parametrů do globálního stavu
+    gameState.isHost = hostStatus;
+    gameState.myPlayerId = playerId;
+    gameState.currentLobbyId = lobbyId;
     console.log("[GAME] Konfigurace:", { INITIAL_GOLD: C.INITIAL_GOLD, INITIAL_UNITS: C.INITIAL_UNITS });
 
     // Reset a inicializace stavu
@@ -62,7 +68,7 @@ export function initGame() {
     gameState.fractionalUnits = 0;
 
     // Vytvoření herního pole - SYNCHRONIZOVANÉ
-    if (currentLobbyId) {
+    if (gameState.currentLobbyId) {
         syncWorldGeneration();
     } else {
         generateLocalWorld();
@@ -86,10 +92,9 @@ function generateLocalWorld() {
 }
 
 async function syncWorldGeneration() {
-    const worldRef = ref(db, `lobbies/${currentLobbyId}/world`);
-    const { isHost } = await import('../main.js?v=142');
+    const worldRef = ref(db, `lobbies/${gameState.currentLobbyId}/world`);
 
-    if (isHost) {
+    if (gameState.isHost) {
         console.log("[WORLD] Hostitel generuje svět...");
         gameState.gameBoard = [];
         const terrainData = []; // Zjednodušená data pro Firebase
@@ -119,10 +124,10 @@ async function syncWorldGeneration() {
         console.log("[WORLD] Data světa nahrána.");
         finishInit();
     } else {
-        console.log("[WORLD] Klient čeká na data světa...");
+        console.log(`[WORLD] Klient (${myPlayerId}) čeká na data světa v lobby ${currentLobbyId}...`);
         const unsub = onValue(worldRef, (snapshot) => {
             if (snapshot.exists() && snapshot.val().terrain && snapshot.val().structures) {
-                console.log("[WORLD] Data světa dorazila! (v143)");
+                console.log("[WORLD] Data světa dorazila! (v144)");
                 const data = snapshot.val().terrain;
                 const remoteStructures = snapshot.val().structures;
 
@@ -175,7 +180,7 @@ function finishInit(isWorldSynced = false) {
     }
 
     // MULTIPLAYER SYNC: Připojit se k odběru cizích expedic
-    if (currentLobbyId) {
+    if (gameState.currentLobbyId) {
         setupMultiplayerSync();
     }
 
@@ -521,21 +526,21 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = 50
     logMessage(`Expedice #${exp.id} vyslána na [${targetX}, ${targetY}] s ${units} jednotkami.`);
 
     // MULTIPLAYER SYNC
-    if (currentLobbyId && playerId === myPlayerId) {
-        import('../main.js?v=143').then(m => {
+    if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
+        import('../main.js?v=144').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
 }
 
 export function setupMultiplayerSync() {
-    if (!currentLobbyId) return;
+    if (!gameState.currentLobbyId) return;
 
     // Dynamicky zjistit, koho máme poslouchat (toho druhého)
-    const otherPlayerId = (myPlayerId === 'human') ? 'enemy' : 'human';
+    const otherPlayerId = (gameState.myPlayerId === 'human') ? 'enemy' : 'human';
     console.log(`[SYNC] Zapínám sledování hráče: ${otherPlayerId}`);
 
-    const expeditionsRef = ref(db, `lobbies/${currentLobbyId}/expeditions/${otherPlayerId}`);
+    const expeditionsRef = ref(db, `lobbies/${gameState.currentLobbyId}/expeditions/${otherPlayerId}`);
     onValue(expeditionsRef, (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
@@ -658,7 +663,7 @@ export function captureStructure(playerId, structId) {
     logMessage(`Budova ${struct.data.name} byla obsazena!`, 'win');
 }
 
-export function revealMapAround(cx, cy, radius, playerId = myPlayerId) {
+export function revealMapAround(cx, cy, radius, playerId = gameState.myPlayerId) {
     for (let y = Math.max(0, cy - radius); y <= Math.min(C.GRID_SIZE - 1, cy + radius); y++) {
         for (let x = Math.max(0, cx - radius); x <= Math.min(C.GRID_SIZE - 1, cx + radius); x++) {
             const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);

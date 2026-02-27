@@ -3,11 +3,11 @@ if (window.MAIN_JS_INITIALIZED) {
     console.warn('[ABORT] main.js už jednou běží. Ruším druhou instanci.');
 } else {
     window.MAIN_JS_INITIALIZED = true;
-    console.log('[DEBUG] main.js loaded v=143');
+    console.log('[DEBUG] main.js loaded v=144');
 }
 
-import { initGame } from './modules/game.js?v=143';
-import { attachEventListeners } from './modules/input.js?v=143';
+import { initGame } from './modules/game.js?v=144';
+import { attachEventListeners } from './modules/input.js?v=144';
 
 export let myPlayerId = 'human'; // Default
 
@@ -178,8 +178,8 @@ function startGameLocally() {
 
     // Malá prodleva pro jistotu, že UI je vykreslené a moduly jsou načtené
     setTimeout(() => {
-        initGame();
-        attachEventListeners(initGame);
+        initGame(isHost, myPlayerId, currentLobbyId);
+        attachEventListeners(() => initGame(isHost, myPlayerId, currentLobbyId));
     }, 150);
 }
 
@@ -254,7 +254,7 @@ document.getElementById('start-game-btn').addEventListener('click', () => {
 document.getElementById('local-mode-btn').addEventListener('click', () => {
     document.getElementById('mode-selection').style.display = 'none';
     document.getElementById('game-ui').style.display = 'flex';
-    initGame();
+    initGame(true, 'human', null); // Lokální hra: jsem hostitel, jsem 'human', žádný lobby
 });
 
 // Volba Online hry

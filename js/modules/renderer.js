@@ -1,10 +1,9 @@
 ﻿// js/modules/renderer.js
 // Vše co se týká kreslení na Canvas.
 
-import { ui } from './ui.js?v=143';
-import { gameState, viewportState } from './state.js?v=143';
-import * as C from './config.js?v=143';
-import { myPlayerId } from '../main.js?v=143';
+import { ui } from './ui.js?v=144';
+import { gameState, viewportState } from './state.js?v=144';
+import * as C from './config.js?v=144';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 export function gameLoop() {
@@ -35,7 +34,7 @@ function drawBoard() {
             let finalColor = CELL_COLORS['hidden'];
 
             // MULTIPLAYER: Vidím jen to co prozkoumal "já"
-            if (cell.booleanVisible || cell.visibleTo.includes(myPlayerId)) {
+            if (cell.booleanVisible || cell.visibleTo.includes(gameState.myPlayerId)) {
                 finalColor = CELL_COLORS[cell.terrain] || CELL_COLORS['none'] || '#222';
             }
 
@@ -47,12 +46,12 @@ function drawBoard() {
     // 2. VYKRESLENÍ BUDOV
     gameState.structures.forEach(struct => {
         const structCell = gameState.gameBoard[struct.y][struct.x];
-        if (structCell.visibleTo.includes(myPlayerId)) {
+        if (structCell.visibleTo.includes(gameState.myPlayerId)) {
             const structScreenX = struct.x * fullCellSize;
             const structScreenY = struct.y * fullCellSize;
 
             // Pokud je budova objevená, ale nikdo ji nevlastní, dáme jí "neutrální" barvu budovy
-            ctx.fillStyle = (struct.ownerId === myPlayerId) ? '#1976D2' : (struct.ownerId ? '#D32F2F' : '#78909C');
+            ctx.fillStyle = (struct.ownerId === gameState.myPlayerId) ? '#1976D2' : (struct.ownerId ? '#D32F2F' : '#78909C');
             ctx.fillRect(structScreenX, structScreenY, struct.w * fullCellSize - GAP_SIZE, struct.h * fullCellSize - GAP_SIZE);
 
             // Ikona
@@ -77,26 +76,26 @@ function drawBoard() {
 
     // 3. VYKRESLENÍ EXPEDIC
     // Moje expedice
-    if (gameState.players[myPlayerId]?.activeExpeditions) {
-        gameState.players[myPlayerId].activeExpeditions.forEach(exp => {
+    if (gameState.players[gameState.myPlayerId]?.activeExpeditions) {
+        gameState.players[gameState.myPlayerId].activeExpeditions.forEach(exp => {
             const isSelected = gameState.selectedExpeditionIds.includes(exp.id);
             const curX = exp.startX + (exp.targetX - exp.startX) * exp.progress;
             const curY = exp.startY + (exp.targetY - exp.startY) * exp.progress;
-            drawExpedition(ctx, curX, curY, exp.unitsLeft, gameState.players[myPlayerId].color, isSelected);
+            drawExpedition(ctx, curX, curY, exp.unitsLeft, gameState.players[gameState.myPlayerId].color, isSelected);
             drawDustIndicators(ctx, curX, curY);
         });
     }
 
     // Ostatní expedice (jen v dohledu)
     Object.keys(gameState.players).forEach(pId => {
-        if (pId === myPlayerId) return;
+        if (pId === gameState.myPlayerId) return;
         const oPlayer = gameState.players[pId];
         if (oPlayer?.activeExpeditions) {
             oPlayer.activeExpeditions.forEach(exp => {
                 const curX = exp.startX + (exp.targetX - exp.startX) * exp.progress;
                 const curY = exp.startY + (exp.targetY - exp.startY) * exp.progress;
                 const cell = gameState.gameBoard[Math.round(curY)]?.[Math.round(curX)];
-                if (cell?.visibleTo.includes(myPlayerId)) {
+                if (cell?.visibleTo.includes(gameState.myPlayerId)) {
                     drawExpedition(ctx, curX, curY, exp.unitsLeft, oPlayer.color, false);
                 }
             });

@@ -1,12 +1,11 @@
 ﻿// js/modules/input.js
 // Zpracování vstupů od uživatele (myš, zoom, kliknutí).
-console.log('[INPUT] input.js loaded v=143');
+console.log('[INPUT] input.js loaded v=144');
 
-import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=143';
-import { viewportState, gameState } from './state.js?v=143';
-import * as C from './config.js?v=143';
-import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition } from './game.js?v=143';
-import { myPlayerId } from '../main.js?v=143';
+import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=144';
+import { viewportState, gameState } from './state.js?v=144';
+import * as C from './config.js?v=144';
+import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition } from './game.js?v=144';
 
 // Stav klávesy Q
 let isQPressed = false;
@@ -197,8 +196,8 @@ function onDoubleClick(e) {
     const struct = cell.structureId ? gameState.structures.get(cell.structureId) : null;
 
     // 1. Double click na budovu -> obsadit (pokud je cizí)
-    if (cell.visibleTo.includes(myPlayerId) && struct && struct.ownerId !== myPlayerId) {
-        captureStructure(myPlayerId, struct.id);
+    if (cell.visibleTo.includes(gameState.myPlayerId) && struct && struct.ownerId !== gameState.myPlayerId) {
+        captureStructure(gameState.myPlayerId, struct.id);
         return;
     }
 
@@ -240,13 +239,13 @@ function handleRightClick(e) {
         const ids = [...gameState.selectedExpeditionIds];
         if (e.shiftKey) {
             // SHIFT + Right Click = 50% split
-            ids.forEach(id => splitExpedition(myPlayerId, id, coords.x, coords.y, 50));
+            ids.forEach(id => splitExpedition(gameState.myPlayerId, id, coords.x, coords.y, 50));
         } else if (e.ctrlKey) {
             // CTRL + Right Click = 10% split
-            ids.forEach(id => splitExpedition(myPlayerId, id, coords.x, coords.y, 10));
+            ids.forEach(id => splitExpedition(gameState.myPlayerId, id, coords.x, coords.y, 10));
         } else {
             // Jen Right Click = redirect 100%
-            ids.forEach(id => redirectExpedition(myPlayerId, id, coords.x, coords.y));
+            ids.forEach(id => redirectExpedition(gameState.myPlayerId, id, coords.x, coords.y));
         }
         gameState.needsRedraw = true;
         return;
@@ -256,15 +255,15 @@ function handleRightClick(e) {
     const cell = gameState.gameBoard[coords.y][coords.x];
     const struct = cell.structureId ? gameState.structures.get(cell.structureId) : null;
 
-    if (!cell.visibleTo.includes(myPlayerId)) {
-        showExpeditionMenu(myPlayerId, coords.x, coords.y, e);
+    if (!cell.visibleTo.includes(gameState.myPlayerId)) {
+        showExpeditionMenu(gameState.myPlayerId, coords.x, coords.y, e);
     } else {
-        if (cell.ownerId === myPlayerId && cell.structureId === null) {
-            showBuildMenu(myPlayerId, coords.x, coords.y, e);
-        } else if (struct && struct.ownerId !== myPlayerId) {
-            showCaptureMenu(myPlayerId, struct, e);
-        } else if (cell.ownerId !== myPlayerId && cell.ownerId !== null) {
-            showExpeditionMenu(myPlayerId, coords.x, coords.y, e);
+        if (cell.ownerId === gameState.myPlayerId && cell.structureId === null) {
+            showBuildMenu(gameState.myPlayerId, coords.x, coords.y, e);
+        } else if (struct && struct.ownerId !== gameState.myPlayerId) {
+            showCaptureMenu(gameState.myPlayerId, struct, e);
+        } else if (cell.ownerId !== gameState.myPlayerId && cell.ownerId !== null) {
+            showExpeditionMenu(gameState.myPlayerId, coords.x, coords.y, e);
         }
     }
 }
@@ -287,7 +286,7 @@ export function attachEventListeners(initGame) {
     });
     ui.resetBtn.addEventListener('click', initGame);
     const buyUnit = (count) => {
-        const player = gameState.players[myPlayerId];
+        const player = gameState.players[gameState.myPlayerId];
         if (!player) return;
 
         let purchasable = count;

@@ -1,9 +1,12 @@
 ﻿// js/modules/state.js
-console.log('[DEBUG] state.js loaded v=143');
+console.log('[DEBUG] state.js loaded v=144');
 // Exportuje objekty, které drží veškerý měnitelný stav hry.
-// Místo hromady globálních proměnných máme jeden "zdroj pravdy".
 
 export const gameState = {
+    // MULTIPLAYER STAV
+    isHost: false,
+    myPlayerId: 'human',
+    currentLobbyId: null,
     players: {},
 
     // Herní deska zůstává, ale buňky budou mít 'ownerId' místo 'state'
