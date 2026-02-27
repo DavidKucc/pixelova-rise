@@ -1,9 +1,10 @@
 ﻿// js/modules/renderer.js
 // Vše co se týká kreslení na Canvas.
 
-import { ui } from './ui.js?v=137';
-import { gameState, viewportState } from './state.js?v=137';
-import * as C from './config.js?v=137';
+import { ui } from './ui.js?v=138';
+import { gameState, viewportState } from './state.js?v=138';
+import * as C from './config.js?v=138';
+import { myPlayerId } from '../main.js?v=138';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 export function gameLoop() {
@@ -33,8 +34,8 @@ function drawBoard() {
             const cell = gameState.gameBoard[y][x];
             let finalColor = CELL_COLORS['hidden'];
 
-            // MULTIPLAYER: Vidím jen to co prozkoumal "human"
-            if (cell.visibleTo.includes('human')) {
+            // MULTIPLAYER: Vidím jen to co prozkoumal "já"
+            if (cell.visibleTo.includes(myPlayerId)) {
                 finalColor = CELL_COLORS[cell.terrain] || '#222';
             }
 
@@ -46,11 +47,11 @@ function drawBoard() {
     // 2. VYKRESLENÍ BUDOV
     gameState.structures.forEach(struct => {
         const structCell = gameState.gameBoard[struct.y][struct.x];
-        if (structCell.visibleTo.includes('human')) {
+        if (structCell.visibleTo.includes(myPlayerId)) {
             const structScreenX = struct.x * fullCellSize;
             const structScreenY = struct.y * fullCellSize;
 
-            ctx.fillStyle = (struct.ownerId === 'human') ? '#1976D2' : '#455A64';
+            ctx.fillStyle = (struct.ownerId === myPlayerId) ? '#1976D2' : '#455A64';
             ctx.fillRect(structScreenX, structScreenY, struct.w * fullCellSize - GAP_SIZE, struct.h * fullCellSize - GAP_SIZE);
 
             // Ikona
@@ -75,27 +76,31 @@ function drawBoard() {
 
     // 3. VYKRESLENÍ EXPEDIC
     // Moje expedice
-    if (gameState.players['human']?.activeExpeditions) {
-        gameState.players['human'].activeExpeditions.forEach(exp => {
+    if (gameState.players[myPlayerId]?.activeExpeditions) {
+        gameState.players[myPlayerId].activeExpeditions.forEach(exp => {
             const isSelected = gameState.selectedExpeditionIds.includes(exp.id);
             const curX = exp.startX + (exp.targetX - exp.startX) * exp.progress;
             const curY = exp.startY + (exp.targetY - exp.startY) * exp.progress;
-            drawExpedition(ctx, curX, curY, exp.unitsLeft, gameState.players['human'].color, isSelected);
+            drawExpedition(ctx, curX, curY, exp.unitsLeft, gameState.players[myPlayerId].color, isSelected);
             drawDustIndicators(ctx, curX, curY);
         });
     }
 
-    // Nepřátelské expedice (jen v dohledu)
-    if (gameState.players['enemy']?.activeExpeditions) {
-        gameState.players['enemy'].activeExpeditions.forEach(exp => {
-            const curX = exp.startX + (exp.targetX - exp.startX) * exp.progress;
-            const curY = exp.startY + (exp.targetY - exp.startY) * exp.progress;
-            const cell = gameState.gameBoard[Math.round(curY)]?.[Math.round(curX)];
-            if (cell?.visibleTo.includes('human')) {
-                drawExpedition(ctx, curX, curY, exp.unitsLeft, gameState.players['enemy'].color, false);
-            }
-        });
-    }
+    // Ostatní expedice (jen v dohledu)
+    Object.keys(gameState.players).forEach(pId => {
+        if (pId === myPlayerId) return;
+        const oPlayer = gameState.players[pId];
+        if (oPlayer?.activeExpeditions) {
+            oPlayer.activeExpeditions.forEach(exp => {
+                const curX = exp.startX + (exp.targetX - exp.startX) * exp.progress;
+                const curY = exp.startY + (exp.targetY - exp.startY) * exp.progress;
+                const cell = gameState.gameBoard[Math.round(curY)]?.[Math.round(curX)];
+                if (cell?.visibleTo.includes(myPlayerId)) {
+                    drawExpedition(ctx, curX, curY, exp.unitsLeft, oPlayer.color, false);
+                }
+            });
+        }
+    });
 
     // 4. VÝBĚROVÝ BOX
     if (gameState.selectionBox?.active && viewportState.didDrag) {

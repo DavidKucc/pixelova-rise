@@ -1,10 +1,11 @@
 ﻿// js/modules/ui.js
 // Zodpovídá za veškerou interakci s DOM elementy (vše mimo Canvas).
 
-console.log('[DEBUG] ui.js loaded v=137');
+console.log('[DEBUG] ui.js loaded v=138');
 
-import * as C from './config.js?v=137';
-import { gameState } from './state.js?v=137';
+import * as C from './config.js?v=138';
+import { gameState } from './state.js?v=138';
+import { myPlayerId } from '../main.js?v=138';
 
 function getEl(id) {
     const el = document.getElementById(id);
@@ -36,7 +37,7 @@ export const ui = {
 };
 
 export function updateUI() {
-    const player = gameState.players['human'];
+    const player = gameState.players[myPlayerId];
     if (!player) return;
 
     const stats = {
@@ -106,10 +107,10 @@ export function updateActionPanel() {
     if (!struct) return;
     let html = `<h3>${struct.data.name}</h3>`;
     const isOwned = struct.type.startsWith('owned_');
-    const player = gameState.players['human'];
+    const player = gameState.players[myPlayerId];
     if (!isOwned && player) {
         const canAfford = player.gold >= struct.data.cost;
-        html += `<button onclick="captureStructure('human', ${struct.id})" ${!canAfford ? 'disabled' : ''}>Obsadit (${struct.data.cost}💰)</button>`;
+        html += `<button onclick="captureStructure('${myPlayerId}', ${struct.id})" ${!canAfford ? 'disabled' : ''}>Obsadit (${struct.data.cost}💰)</button>`;
     }
     panel.innerHTML = html;
 }
@@ -137,7 +138,7 @@ export function removeContextMenu() {
 }
 
 window.tradeWithPost = () => {
-    const player = gameState.players['human'];
+    const player = gameState.players[myPlayerId];
     if (player && player.units >= 5) {
         player.units -= 5; player.gold += 200;
         updateUI(); logMessage(`Vyměněno 5⚔️ za 200💰.`, 'win');

@@ -1,7 +1,9 @@
 // js/main.js
-console.log('[DEBUG] main.js loaded v=137');
+console.log('[DEBUG] main.js loaded v=138');
 
-import { initGame } from './modules/game.js?v=137';
+import { initGame } from './modules/game.js?v=138';
+
+export let myPlayerId = 'human'; // Default
 
 // --- FIREBASE KONFIGURACE (Doplněno od uživatele) ---
 const firebaseConfig = {
@@ -25,6 +27,11 @@ export const db = getDatabase(app);
 export let currentLobbyId = null;
 export let playerFirebaseRef = null;
 export let isHost = false;
+
+function updatePlayerIdentity() {
+    myPlayerId = isHost ? 'human' : 'enemy';
+    console.log(`[LOBBY] Moje ID hráče je: ${myPlayerId}`);
+}
 export let isReady = false;
 
 // Funkce pro detekci parametrů v URL při načtení
@@ -91,6 +98,7 @@ function joinFirebaseLobby(nickname) {
         isHost = true;
         console.log("[LOBBY] Jsi hostitelem této bitvy.");
     }
+    updatePlayerIdentity();
 
     onValue(lobbyPlayersRef, (snapshot) => {
         // Fallback: Pokud v lobby ještě nikdo není, jsme první = host

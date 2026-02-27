@@ -1,4 +1,4 @@
-﻿// js/modules/config.js v=137
+﻿// js/modules/config.js v=138
 // Všechny neměnné hodnoty, konstanty a statická data hry.
 
 export const GRID_SIZE = 400, INITIAL_GOLD = 500, INITIAL_UNITS = 20, INITIAL_CRYSTALS = 0;

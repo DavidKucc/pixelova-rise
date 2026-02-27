@@ -1,11 +1,12 @@
 ﻿// js/modules/input.js
 // Zpracování vstupů od uživatele (myš, zoom, kliknutí).
-console.log('[INPUT] input.js loaded v=137');
+console.log('[INPUT] input.js loaded v=138');
 
-import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=137';
-import { viewportState, gameState } from './state.js?v=137';
-import * as C from './config.js?v=137';
-import { gatherExpeditions, launchExpedition, redirectExpedition, initGame } from './game.js?v=137';
+import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=138';
+import { viewportState, gameState } from './state.js?v=138';
+import * as C from './config.js?v=138';
+import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure } from './game.js?v=138';
+import { myPlayerId } from '../main.js?v=138';
 
 // Stav klávesy Q
 let isQPressed = false;
@@ -196,8 +197,8 @@ function onDoubleClick(e) {
     const struct = cell.structureId ? gameState.structures.get(cell.structureId) : null;
 
     // 1. Double click na budovu -> obsadit (pokud je cizí)
-    if (cell.visibleTo.includes('human') && struct && struct.ownerId !== 'human') {
-        captureStructure('human', struct.id);
+    if (cell.visibleTo.includes(myPlayerId) && struct && struct.ownerId !== myPlayerId) {
+        captureStructure(myPlayerId, struct.id);
         return;
     }
 
@@ -239,13 +240,13 @@ function handleRightClick(e) {
         const ids = [...gameState.selectedExpeditionIds];
         if (e.shiftKey) {
             // SHIFT + Right Click = 50% split
-            ids.forEach(id => splitExpedition('human', id, coords.x, coords.y, 50));
+            ids.forEach(id => splitExpedition(myPlayerId, id, coords.x, coords.y, 50));
         } else if (e.ctrlKey) {
             // CTRL + Right Click = 10% split
-            ids.forEach(id => splitExpedition('human', id, coords.x, coords.y, 10));
+            ids.forEach(id => splitExpedition(myPlayerId, id, coords.x, coords.y, 10));
         } else {
             // Jen Right Click = redirect 100%
-            ids.forEach(id => redirectExpedition('human', id, coords.x, coords.y));
+            ids.forEach(id => redirectExpedition(myPlayerId, id, coords.x, coords.y));
         }
         gameState.needsRedraw = true;
         return;
@@ -255,15 +256,15 @@ function handleRightClick(e) {
     const cell = gameState.gameBoard[coords.y][coords.x];
     const struct = cell.structureId ? gameState.structures.get(cell.structureId) : null;
 
-    if (!cell.visibleTo.includes('human')) {
-        showExpeditionMenu('human', coords.x, coords.y, e);
+    if (!cell.visibleTo.includes(myPlayerId)) {
+        showExpeditionMenu(myPlayerId, coords.x, coords.y, e);
     } else {
-        if (cell.ownerId === 'human' && cell.structureId === null) {
-            showBuildMenu('human', coords.x, coords.y, e);
-        } else if (struct && struct.ownerId !== 'human') {
-            showCaptureMenu('human', struct, e);
-        } else if (cell.ownerId !== 'human' && cell.ownerId !== null) {
-            showExpeditionMenu('human', coords.x, coords.y, e);
+        if (cell.ownerId === myPlayerId && cell.structureId === null) {
+            showBuildMenu(myPlayerId, coords.x, coords.y, e);
+        } else if (struct && struct.ownerId !== myPlayerId) {
+            showCaptureMenu(myPlayerId, struct, e);
+        } else if (cell.ownerId !== myPlayerId && cell.ownerId !== null) {
+            showExpeditionMenu(myPlayerId, coords.x, coords.y, e);
         }
     }
 }
@@ -286,7 +287,7 @@ export function attachEventListeners(initGame) {
     });
     ui.resetBtn.addEventListener('click', initGame);
     const buyUnit = (count) => {
-        const player = gameState.players['human'];
+        const player = gameState.players[myPlayerId];
         if (!player) return;
 
         let purchasable = count;
