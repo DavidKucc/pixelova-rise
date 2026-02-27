@@ -1,16 +1,16 @@
-﻿console.log('[DEBUG] game.js loaded v=142');
+﻿console.log('[DEBUG] game.js loaded v=143');
 
-import * as C from './config.js?v=142';
-import { gameState, viewportState } from './state.js?v=142';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=142';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=142';
-// import { attachEventListeners } from './input.js?v=142'; // ROZBITA KRUHOVÁ ZÁVISLOST -> Volá main.js
-import { gameLoop } from './renderer.js?v=142';
-import { runAIDecision } from './ai.js?v=142';
-import { Logger } from './logger.js?v=142';
+import * as C from './config.js?v=143';
+import { gameState, viewportState } from './state.js?v=143';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=143';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=143';
+// import { attachEventListeners } from './input.js?v=143'; // ROZBITA KRUHOVÁ ZÁVISLOST -> Volá main.js
+import { gameLoop } from './renderer.js?v=143';
+import { runAIDecision } from './ai.js?v=143';
+import { Logger } from './logger.js?v=143';
 
 // --- MULTIPLAYER IMPORTY ---
-import { db, currentLobbyId, myPlayerId } from '../main.js?v=142';
+import { db, currentLobbyId, myPlayerId } from '../main.js?v=143';
 import { ref, push, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
 // Nový objekt pro definici hráčů a jejich barev
@@ -20,7 +20,7 @@ export const PLAYER_DEFINITIONS = {
 };
 
 export function initGame() {
-    console.log("[GAME] Inicializace hry v=142...");
+    console.log("[GAME] Inicializace hry v=143...");
     console.log("[GAME] Konfigurace:", { INITIAL_GOLD: C.INITIAL_GOLD, INITIAL_UNITS: C.INITIAL_UNITS });
 
     // Reset a inicializace stavu
@@ -109,17 +109,24 @@ async function syncWorldGeneration() {
             terrainData.push(terrainRow);
         }
         // Uložit do Firebase a POČKAT na dokončení, aby to klient mohl stáhnout
-        console.log("[WORLD] Nahrávám data světa na server...");
-        await set(worldRef, { terrain: terrainData, seed: Math.random() });
+        console.log("[WORLD] Nahrávám data světa a budov na server...");
+        const structureArray = Array.from(gameState.structures.values());
+        await set(worldRef, {
+            terrain: terrainData,
+            structures: structureArray,
+            seed: Math.random()
+        });
         console.log("[WORLD] Data světa nahrána.");
         finishInit();
     } else {
         console.log("[WORLD] Klient čeká na data světa...");
-        // Trpělivý listener - čeká dokud data "nezmění barvu" (nedorazí)
         const unsub = onValue(worldRef, (snapshot) => {
-            if (snapshot.exists() && snapshot.val().terrain) {
-                console.log("[WORLD] Data světa dorazila!");
+            if (snapshot.exists() && snapshot.val().terrain && snapshot.val().structures) {
+                console.log("[WORLD] Data světa dorazila! (v143)");
                 const data = snapshot.val().terrain;
+                const remoteStructures = snapshot.val().structures;
+
+                // 1. Rekonstrukce terénu
                 gameState.gameBoard = [];
                 for (let y = 0; y < C.GRID_SIZE; y++) {
                     const row = [];
@@ -130,23 +137,42 @@ async function syncWorldGeneration() {
                     }
                     gameState.gameBoard.push(row);
                 }
-                unsub(); // Už data máme, přestaneme naslouchat
-                finishInit();
+
+                // 2. Rekonstrukce budov
+                gameState.structures.clear();
+                remoteStructures.forEach(s => {
+                    createStructure(s.type, s.x, s.y, s.w, s.h, s.data, s.ownerId, s.id);
+                });
+
+                unsub();
+                finishInit(true); // true = svět už je kompletní nebudovat náhodně
             }
         });
     }
 }
 
-function finishInit() {
-    // Základny
-    const baseSize = 6;
+function finishInit(isWorldSynced = false) {
     const humanBaseX = 50;
     const humanBaseY = 50;
-    createStructure('base', humanBaseX, humanBaseY, baseSize, baseSize, { name: 'Hlavní stan' }, 'human');
-
     const enemyBaseX = C.GRID_SIZE - 50;
     const enemyBaseY = C.GRID_SIZE - 50;
-    createStructure('base', enemyBaseX, enemyBaseY, baseSize, baseSize, { name: 'Válečný tábor' }, 'enemy');
+
+    // Pokud nemáme svět ze synchronizace, vygenerujeme základní budovy (jen pro hostitele/local)
+    if (!isWorldSynced) {
+        const baseSize = 6;
+        createStructure('base', humanBaseX, humanBaseY, baseSize, baseSize, { name: 'Hlavní stan' }, 'human');
+        createStructure('base', enemyBaseX, enemyBaseY, baseSize, baseSize, { name: 'Válečný tábor' }, 'enemy');
+
+        // Náhodné struktury
+        for (let i = 0; i < C.NUM_STRUCTURES; i++) {
+            const rand = Math.random();
+            if (rand < 0.35) placeRandomStructure('mine', 2, { name: 'Důl', income: 5, cost: 100 });
+            else if (rand < 0.70) placeRandomStructure('village', 3, { name: 'Vesnice', unit_bonus: 7, cost: 75 });
+            else if (rand < 0.85) placeRandomStructure('crystal_mine', 2, { name: 'Krystalový důl', income: 1, cost: 300 });
+            else if (rand < 0.95) placeRandomStructure('ancient_library', 4, { name: 'Prastará knihovna', reveal_radius: 15, cost: 250 });
+            else placeRandomStructure('trading_post', 3, { name: 'Tržiště', cost: 150 });
+        }
+    }
 
     // MULTIPLAYER SYNC: Připojit se k odběru cizích expedic
     if (currentLobbyId) {
@@ -157,16 +183,6 @@ function finishInit() {
     // Hostitel vidí své okolí, klient své
     revealMapAround(humanBaseX, humanBaseY, 20, 'human');
     revealMapAround(enemyBaseX, enemyBaseY, 20, 'enemy');
-
-    // Náhodné struktury
-    for (let i = 0; i < C.NUM_STRUCTURES; i++) {
-        const rand = Math.random();
-        if (rand < 0.35) placeRandomStructure('mine', 2, { name: 'Důl', income: 5, cost: 100 });
-        else if (rand < 0.70) placeRandomStructure('village', 3, { name: 'Vesnice', unit_bonus: 7, cost: 75 });
-        else if (rand < 0.85) placeRandomStructure('crystal_mine', 2, { name: 'Krystalový důl', income: 1, cost: 300 });
-        else if (rand < 0.95) placeRandomStructure('ancient_library', 4, { name: 'Prastará knihovna', reveal_radius: 15, cost: 250 });
-        else placeRandomStructure('trading_post', 3, { name: 'Tržiště', cost: 150 });
-    }
 
     // Viewport
     viewportState.scale = 0.5;
@@ -505,8 +521,8 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = 50
     logMessage(`Expedice #${exp.id} vyslána na [${targetX}, ${targetY}] s ${units} jednotkami.`);
 
     // MULTIPLAYER SYNC
-    if (currentLobbyId && playerId === 'human') {
-        import('../main.js?v=142').then(m => {
+    if (currentLobbyId && playerId === myPlayerId) {
+        import('../main.js?v=143').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -515,19 +531,22 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = 50
 export function setupMultiplayerSync() {
     if (!currentLobbyId) return;
 
-    // Poslouchat expedice ostatních hráčů
-    const expeditionsRef = ref(db, `lobbies/${currentLobbyId}/expeditions/enemy`);
+    // Dynamicky zjistit, koho máme poslouchat (toho druhého)
+    const otherPlayerId = (myPlayerId === 'human') ? 'enemy' : 'human';
+    console.log(`[SYNC] Zapínám sledování hráče: ${otherPlayerId}`);
+
+    const expeditionsRef = ref(db, `lobbies/${currentLobbyId}/expeditions/${otherPlayerId}`);
     onValue(expeditionsRef, (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
 
         // Resetovat cizí expedice v lokálním stavu a nahrát nové
-        const enemyPlayer = gameState.players['enemy'];
-        if (enemyPlayer) {
-            enemyPlayer.activeExpeditions = [];
+        const otherPlayer = gameState.players[otherPlayerId];
+        if (otherPlayer) {
+            otherPlayer.activeExpeditions = [];
             for (const id in data) {
                 const remote = data[id];
-                enemyPlayer.activeExpeditions.push({
+                otherPlayer.activeExpeditions.push({
                     id: remote.id,
                     startX: remote.startX,
                     startY: remote.startY,

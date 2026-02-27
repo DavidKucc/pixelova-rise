@@ -3,11 +3,11 @@ if (window.MAIN_JS_INITIALIZED) {
     console.warn('[ABORT] main.js už jednou běží. Ruším druhou instanci.');
 } else {
     window.MAIN_JS_INITIALIZED = true;
-    console.log('[DEBUG] main.js loaded v=142');
+    console.log('[DEBUG] main.js loaded v=143');
 }
 
-import { initGame } from './modules/game.js?v=142';
-import { attachEventListeners } from './modules/input.js?v=142';
+import { initGame } from './modules/game.js?v=143';
+import { attachEventListeners } from './modules/input.js?v=143';
 
 export let myPlayerId = 'human'; // Default
 
@@ -295,3 +295,17 @@ window.onerror = function (msg, url, line) {
     console.error(`ERROR v131: ${msg} at ${line}`);
     return false;
 };
+// --- SYNCHRONIZAČNÍ EXPORTY ---
+export function syncExpeditionToFirebase(playerId, exp) {
+    if (!currentLobbyId || !exp) return;
+    const expeditionsRef = ref(db, `lobbies/${currentLobbyId}/expeditions/${playerId}/${exp.id}`);
+    set(expeditionsRef, {
+        id: exp.id,
+        startX: exp.startX,
+        startY: exp.startY,
+        targetX: exp.targetX,
+        targetY: exp.targetY,
+        units: exp.unitsLeft,
+        timestamp: Date.now()
+    });
+}

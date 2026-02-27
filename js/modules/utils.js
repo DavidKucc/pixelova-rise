@@ -1,9 +1,9 @@
 ﻿// js/modules/utils.js
 // Pomocné, znovupoužitelné funkce, které nejsou přímo vázané na herní logiku.
-console.log('[DEBUG] utils.js loaded v=142');
+console.log('[DEBUG] utils.js loaded v=143');
 
-import * as C from './config.js?v=142';
-import { gameState } from './state.js?v=142';
+import * as C from './config.js?v=143';
+import { gameState } from './state.js?v=143';
 
 export function getNeighbors(x, y) {
     const n = [];
@@ -27,8 +27,8 @@ export function isAreaClear(x, y, w, h) {
     return true;
 }
 
-export function createStructure(type, x, y, w, h, data, ownerId) {
-    const id = gameState.structures.size + Date.now();
+export function createStructure(type, x, y, w, h, data, ownerId, externalId = null) {
+    const id = externalId !== null ? externalId : (gameState.structures.size + Date.now() + Math.floor(Math.random() * 1000));
     const newStructure = { id, type, x, y, w, h, data, ownerId: ownerId, upkeep: data.upkeep || null };
     gameState.structures.set(id, newStructure);
 

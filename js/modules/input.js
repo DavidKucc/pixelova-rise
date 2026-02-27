@@ -1,12 +1,12 @@
 ﻿// js/modules/input.js
 // Zpracování vstupů od uživatele (myš, zoom, kliknutí).
-console.log('[INPUT] input.js loaded v=142');
+console.log('[INPUT] input.js loaded v=143');
 
-import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=142';
-import { viewportState, gameState } from './state.js?v=142';
-import * as C from './config.js?v=142';
-import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition } from './game.js?v=142';
-import { myPlayerId } from '../main.js?v=142';
+import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=143';
+import { viewportState, gameState } from './state.js?v=143';
+import * as C from './config.js?v=143';
+import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition } from './game.js?v=143';
+import { myPlayerId } from '../main.js?v=143';
 
 // Stav klávesy Q
 let isQPressed = false;
