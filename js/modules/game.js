@@ -1,16 +1,16 @@
-﻿console.log('[DEBUG] game.js loaded v=139');
+﻿console.log('[DEBUG] game.js loaded v=140');
 
-import * as C from './config.js?v=139';
-import { gameState, viewportState } from './state.js?v=139';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=139';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=139';
-import { attachEventListeners } from './input.js?v=139';
-import { gameLoop } from './renderer.js?v=139';
-import { runAIDecision } from './ai.js?v=139';
-import { Logger } from './logger.js?v=139';
+import * as C from './config.js?v=140';
+import { gameState, viewportState } from './state.js?v=140';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=140';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=140';
+import { attachEventListeners } from './input.js?v=140';
+import { gameLoop } from './renderer.js?v=140';
+import { runAIDecision } from './ai.js?v=140';
+import { Logger } from './logger.js?v=140';
 
 // --- MULTIPLAYER IMPORTY ---
-import { db, currentLobbyId, myPlayerId } from '../main.js?v=139';
+import { db, currentLobbyId, myPlayerId } from '../main.js?v=140';
 import { ref, push, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
 // Nový objekt pro definici hráčů a jejich barev
@@ -20,7 +20,7 @@ export const PLAYER_DEFINITIONS = {
 };
 
 export function initGame() {
-    console.log("[GAME] Inicializace hry v=139...");
+    console.log("[GAME] Inicializace hry v=140...");
     console.log("[GAME] Konfigurace:", { INITIAL_GOLD: C.INITIAL_GOLD, INITIAL_UNITS: C.INITIAL_UNITS });
 
     // Reset a inicializace stavu
@@ -87,7 +87,7 @@ function generateLocalWorld() {
 
 async function syncWorldGeneration() {
     const worldRef = ref(db, `lobbies/${currentLobbyId}/world`);
-    const { isHost } = await import('../main.js?v=139');
+    const { isHost } = await import('../main.js?v=140');
 
     if (isHost) {
         console.log("[WORLD] Hostitel generuje svět...");
@@ -108,9 +108,10 @@ async function syncWorldGeneration() {
             gameState.gameBoard.push(row);
             terrainData.push(terrainRow);
         }
-        // Uložit do Firebase (může to být velké, ale pro 400x400 zkusíme zjednodušeně nebo aspoň seed)
-        // Aby to bylo rychlé, pošleme jen seed nebo stručnou mapu.
-        set(worldRef, { terrain: terrainData, seed: Math.random() });
+        // Uložit do Firebase a POČKAT na dokončení, aby to klient mohl stáhnout
+        console.log("[WORLD] Nahrávám data světa na server...");
+        await set(worldRef, { terrain: terrainData, seed: Math.random() });
+        console.log("[WORLD] Data světa nahrána.");
         finishInit();
     } else {
         console.log("[WORLD] Klient čeká na data světa...");
@@ -184,7 +185,7 @@ function finishInit() {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage('Vítej v Pixelové Říši! Verze 110 aktivní.', 'win');
+    logMessage('Vítej v Pixelové Říši! Verze 140 aktivní.', 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
@@ -497,7 +498,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = 50
 
     // MULTIPLAYER SYNC
     if (currentLobbyId && playerId === 'human') {
-        import('../main.js?v=139').then(m => {
+        import('../main.js?v=140').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }

@@ -1,7 +1,7 @@
 // js/main.js
-console.log('[DEBUG] main.js loaded v=139');
+console.log('[DEBUG] main.js loaded v=140');
 
-import { initGame } from './modules/game.js?v=139';
+import { initGame } from './modules/game.js?v=140';
 
 export let myPlayerId = 'human'; // Default
 
