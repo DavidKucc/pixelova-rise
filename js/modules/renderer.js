@@ -1,10 +1,10 @@
 ﻿// js/modules/renderer.js
 // Vše co se týká kreslení na Canvas.
 
-import { ui } from './ui.js?v=138';
-import { gameState, viewportState } from './state.js?v=138';
-import * as C from './config.js?v=138';
-import { myPlayerId } from '../main.js?v=138';
+import { ui } from './ui.js?v=139';
+import { gameState, viewportState } from './state.js?v=139';
+import * as C from './config.js?v=139';
+import { myPlayerId } from '../main.js?v=139';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 export function gameLoop() {

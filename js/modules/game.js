@@ -1,16 +1,16 @@
-﻿console.log('[DEBUG] game.js loaded v=138');
+﻿console.log('[DEBUG] game.js loaded v=139');
 
-import * as C from './config.js?v=138';
-import { gameState, viewportState } from './state.js?v=138';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=138';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=138';
-import { attachEventListeners } from './input.js?v=138';
-import { gameLoop } from './renderer.js?v=138';
-import { runAIDecision } from './ai.js?v=138';
-import { Logger } from './logger.js?v=138';
+import * as C from './config.js?v=139';
+import { gameState, viewportState } from './state.js?v=139';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=139';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=139';
+import { attachEventListeners } from './input.js?v=139';
+import { gameLoop } from './renderer.js?v=139';
+import { runAIDecision } from './ai.js?v=139';
+import { Logger } from './logger.js?v=139';
 
 // --- MULTIPLAYER IMPORTY ---
-import { db, currentLobbyId, myPlayerId } from '../main.js?v=138';
+import { db, currentLobbyId, myPlayerId } from '../main.js?v=139';
 import { ref, push, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
 // Nový objekt pro definici hráčů a jejich barev
@@ -20,7 +20,7 @@ export const PLAYER_DEFINITIONS = {
 };
 
 export function initGame() {
-    console.log("[GAME] Inicializace hry v=138...");
+    console.log("[GAME] Inicializace hry v=139...");
     console.log("[GAME] Konfigurace:", { INITIAL_GOLD: C.INITIAL_GOLD, INITIAL_UNITS: C.INITIAL_UNITS });
 
     // Reset a inicializace stavu
@@ -87,7 +87,7 @@ function generateLocalWorld() {
 
 async function syncWorldGeneration() {
     const worldRef = ref(db, `lobbies/${currentLobbyId}/world`);
-    const { isHost } = await import('../main.js?v=138');
+    const { isHost } = await import('../main.js?v=139');
 
     if (isHost) {
         console.log("[WORLD] Hostitel generuje svět...");
@@ -497,7 +497,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = 50
 
     // MULTIPLAYER SYNC
     if (currentLobbyId && playerId === 'human') {
-        import('../main.js?v=138').then(m => {
+        import('../main.js?v=139').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
