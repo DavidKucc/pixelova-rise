@@ -1,4 +1,4 @@
-﻿console.log('[DEBUG] game.js loaded v=144');
+﻿console.log('[DEBUG] game.js loaded v=145');
 
 import * as C from './config.js?v=144';
 import { gameState, viewportState } from './state.js?v=144';
@@ -194,12 +194,12 @@ function finishInit(isWorldSynced = false) {
     const vp = document.getElementById('game-viewport');
     if (vp) {
         // Focus na vlastní základnu: Hostitel vlevo nahoře, Klient vpravo dole
-        const focusX = (myPlayerId === 'human') ? humanBaseX : enemyBaseX;
-        const focusY = (myPlayerId === 'human') ? humanBaseY : enemyBaseY;
+        const focusX = (gameState.myPlayerId === 'human') ? humanBaseX : enemyBaseX;
+        const focusY = (gameState.myPlayerId === 'human') ? humanBaseY : enemyBaseY;
 
         viewportState.gridPos.x = vp.clientWidth / 2 - (focusX * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
         viewportState.gridPos.y = vp.clientHeight / 2 - (focusY * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
-        console.log(`[GAME] Kamera vycentrovaná na: [${focusX}, ${focusY}] pro ${myPlayerId}`);
+        console.log(`[GAME] Kamera vycentrovaná na: [${focusX}, ${focusY}] pro ${gameState.myPlayerId}`);
     }
 
     // attachEventListeners(initGame); // VOLÁ MAIN.JS kvuli závislostem

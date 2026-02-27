@@ -3,11 +3,11 @@ if (window.MAIN_JS_INITIALIZED) {
     console.warn('[ABORT] main.js už jednou běží. Ruším druhou instanci.');
 } else {
     window.MAIN_JS_INITIALIZED = true;
-    console.log('[DEBUG] main.js loaded v=144');
+    console.log('[DEBUG] main.js loaded v=145');
 }
 
-import { initGame } from './modules/game.js?v=144';
-import { attachEventListeners } from './modules/input.js?v=144';
+import { initGame } from './modules/game.js?v=145';
+import { attachEventListeners } from './modules/input.js?v=145';
 
 export let myPlayerId = 'human'; // Default
 
