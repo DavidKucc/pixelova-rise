@@ -1,16 +1,16 @@
-﻿console.log('[DEBUG] game.js loaded v=156');
+﻿console.log('[DEBUG] game.js loaded v=157');
 
-import * as C from './config.js?v=156';
-import { gameState, viewportState } from './state.js?v=156';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=156';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=156';
-import { gameLoop } from './renderer.js?v=156';
-import { runAIDecision } from './ai.js?v=156';
-import { Logger } from './logger.js?v=156';
+import * as C from './config.js?v=157';
+import { gameState, viewportState } from './state.js?v=157';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=157';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=157';
+import { gameLoop } from './renderer.js?v=157';
+import { runAIDecision } from './ai.js?v=157';
+import { Logger } from './logger.js?v=157';
 
 // --- MULTIPLAYER SYNC ---
 import { ref, push, set, onValue, onDisconnect, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { db } from '../firebase-config.js?v=156';
+import { db } from '../firebase-config.js?v=157';
 
 export const PLAYER_DEFINITIONS = {
     'human': { name: "Hráč 1", color: '#03A9F4', baseColor: '#29B6F6', borderColor: '#81D4FA', type: 'human' },
@@ -18,7 +18,7 @@ export const PLAYER_DEFINITIONS = {
 };
 
 export async function initGame(hostStatus = false, playerId = 'human', lobbyId = null) {
-    console.log(`[GAME] Inicializace hry v=156 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
+    console.log(`[GAME] Inicializace hry v=157 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
 
     // Uložení parametrů do globálního stavu (DŮLEŽITÉ!)
     gameState.isHost = hostStatus;
@@ -53,7 +53,7 @@ export async function initGame(hostStatus = false, playerId = 'human', lobbyId =
         };
     }
 
-    console.log("[GAME] Hráči inicializováni (v156):", gameState.players);
+    console.log("[GAME] Hráči inicializováni (v157):", gameState.players);
 
     gameState.gameBoard = [];
     gameState.structures.clear();
@@ -131,7 +131,7 @@ async function syncWorldGeneration(resolve) {
         console.log(`[WORLD] Klient (${gameState.myPlayerId}) čeká na data světa v lobby ${gameState.currentLobbyId}...`);
         const unsub = onValue(worldRef, (snapshot) => {
             if (snapshot.exists() && snapshot.val().terrainStr && snapshot.val().structuresJSON) {
-                console.log("[WORLD] Data světa dorazila! (v156)");
+                console.log("[WORLD] Data světa dorazila! (v157)");
                 const tStr = snapshot.val().terrainStr;
                 const remoteStructures = JSON.parse(snapshot.val().structuresJSON);
 
@@ -234,7 +234,7 @@ function finishInit(resolveCallback) {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové Říši! Verze 156 aktivní. Hraješ jako ${gameState.myPlayerId === 'human' ? 'Modrý' : 'Červený'}.`, 'win');
+    logMessage(`Vítej v Pixelové Říši! Verze 157 aktivní. Hraješ jako ${gameState.myPlayerId === 'human' ? 'Modrý' : 'Červený'}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
@@ -302,8 +302,12 @@ function gameTick() {
                 if (!exp.arrived) {
                     const curX = Math.round(exp.startX + (exp.targetX - exp.startX) * exp.progress);
                     const curY = Math.round(exp.startY + (exp.targetY - exp.startY) * exp.progress);
-                    const moveRevealRadius = Math.max(5, 2 + Math.floor(Math.sqrt(exp.unitsLeft) / 2));
-                    revealMapAround(curX, curY, moveRevealRadius, playerId);
+
+                    // FOG OF WAR: Lokálně odhaluje mapu pouze moje vlastní expedice!
+                    if (playerId === gameState.myPlayerId) {
+                        const moveRevealRadius = Math.max(5, 2 + Math.floor(Math.sqrt(exp.unitsLeft) / 2));
+                        revealMapAround(curX, curY, moveRevealRadius, playerId);
+                    }
                 }
 
                 gameState.needsRedraw = true;
@@ -390,11 +394,12 @@ function handleExpeditionArrival(playerId, exp) {
     if (!player) return;
 
     // Dynamický rádius odhalení a záboru v cíli (výraznější pro větší armády)
-    // Dynamický rádius odhalení a záboru v cíli (výraznější pro větší armády)
     const arrivalRevealRadius = Math.max(7, 4 + Math.floor(Math.sqrt(exp.unitsLeft) / 2));
     const claimRadius = Math.max(1, Math.floor(Math.sqrt(exp.unitsLeft) / 2.5));
 
-    revealMapAround(tx, ty, arrivalRevealRadius);
+    if (playerId === gameState.myPlayerId) {
+        revealMapAround(tx, ty, arrivalRevealRadius);
+    }
 
     const struct = cell.structureId ? gameState.structures.get(cell.structureId) : null;
 
@@ -522,15 +527,32 @@ export function showCaptureMenu(playerId, struct, event) {
 }
 
 
-export function launchExpedition(playerId, targetX, targetY, units, sourceX = 50, sourceY = 50) {
+export function launchExpedition(playerId, targetX, targetY, units, sourceX = null, sourceY = null) {
     const player = gameState.players[playerId];
     if (!player || player.units < units) return;
+
+    // Dynamické určení startu - buď z parametru, nebo z hlavní základny hráče
+    let finalSourceX = sourceX;
+    let finalSourceY = sourceY;
+
+    if (finalSourceX === null || finalSourceY === null) {
+        // Hledáme základnu podle ID hráče
+        const base = Array.from(gameState.structures.values()).find(s => s.ownerId === playerId && s.type.includes('base'));
+        if (base) {
+            finalSourceX = base.x + Math.floor(base.w / 2);
+            finalSourceY = base.y + Math.floor(base.h / 2);
+        } else {
+            // Bezpečnostní pojistka, pokud by base z nějakého důvodu neexistovala
+            finalSourceX = playerId === 'human' ? 50 : Math.round(C.GRID_SIZE - 50);
+            finalSourceY = playerId === 'human' ? 50 : Math.round(C.GRID_SIZE - 50);
+        }
+    }
 
     player.units -= units;
     const exp = {
         id: ++player.expeditionCounter,
-        startX: sourceX,
-        startY: sourceY,
+        startX: finalSourceX,
+        startY: finalSourceY,
         targetX,
         targetY,
         unitsLeft: units,
@@ -546,7 +568,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = 50
 
     // MULTIPLAYER SYNC
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=147').then(m => {
+        import('../main.js?v=157').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
