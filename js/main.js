@@ -3,15 +3,15 @@ if (window.MAIN_JS_INITIALIZED) {
     console.warn('[ABORT] main.js už jednou běží. Ruším druhou instanci.');
 } else {
     window.MAIN_JS_INITIALIZED = true;
-    console.log('[DEBUG] main.js loaded v=154');
+    console.log('[DEBUG] main.js loaded v=155');
 }
 
-import { db } from './firebase-config.js?v=154';
+import { db } from './firebase-config.js?v=155';
 import { ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { initGame } from './modules/game.js?v=154';
-import { attachEventListeners } from './modules/input.js?v=154';
+import { initGame } from './modules/game.js?v=155';
+import { attachEventListeners } from './modules/input.js?v=155';
 
-import { gameState } from './modules/state.js?v=154';
+import { gameState } from './modules/state.js?v=155';
 
 export let playerFirebaseRef = null;
 
@@ -48,8 +48,16 @@ function checkUrlParams() {
 }
 window.showScreen = function (screenId) {
     document.querySelectorAll('.menu-screen').forEach(s => s.style.display = 'none');
+    document.getElementById('game-ui').style.display = 'none'; // pro jistotu vždy skrýt hru
+
     const target = document.getElementById(screenId);
-    if (target) target.style.display = 'flex';
+    if (target) {
+        if (screenId === 'game-ui') {
+            target.style.display = 'flex'; // nebo formát, jaký používá hra (ve stylech se ukazuje normálně jako flex/block)
+        } else {
+            target.style.display = 'flex';
+        }
+    }
 
     if (screenId === 'lobby-screen') {
         const name = document.getElementById('player-nickname').value.trim();
@@ -293,7 +301,7 @@ document.getElementById('copy-lobby-btn').addEventListener('click', async () => 
 });
 
 window.onerror = function (msg, url, line) {
-    console.error(`ERROR v154: ${msg} at ${line}`);
+    console.error(`ERROR v155: ${msg} at ${line}`);
     return false;
 };
 // --- SYNCHRONIZAČNÍ EXPORTY ---
