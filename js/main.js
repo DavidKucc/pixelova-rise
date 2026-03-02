@@ -3,15 +3,15 @@ if (window.MAIN_JS_INITIALIZED) {
     console.warn('[ABORT] main.js už jednou běží. Ruším druhou instanci.');
 } else {
     window.MAIN_JS_INITIALIZED = true;
-    console.log('[DEBUG] main.js loaded v=158');
+    console.log('[DEBUG] main.js loaded v=160');
 }
 
-import { db } from './firebase-config.js?v=158';
+import { db } from './firebase-config.js?v=160';
 import { ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { initGame } from './modules/game.js?v=158';
-import { attachEventListeners } from './modules/input.js?v=158';
+import { initGame } from './modules/game.js?v=160';
+import { attachEventListeners } from './modules/input.js?v=160';
 
-import { gameState } from './modules/state.js?v=158';
+import { gameState } from './modules/state.js?v=160';
 
 export let playerFirebaseRef = null;
 
@@ -301,7 +301,7 @@ document.getElementById('copy-lobby-btn').addEventListener('click', async () => 
 });
 
 window.onerror = function (msg, url, line) {
-    console.error(`ERROR v158: ${msg} at ${line}`);
+    console.error(`ERROR v160: ${msg} at ${line}`);
     return false;
 };
 // --- SYNCHRONIZAČNÍ EXPORTY ---
@@ -317,4 +317,11 @@ export function syncExpeditionToFirebase(playerId, exp) {
         units: exp.unitsLeft,
         timestamp: Date.now()
     });
+}
+
+// Záchrana chybějící funkce z v152! Odesílání signálů akcí.
+export function syncActionToFirebase(actionData) {
+    if (!gameState.currentLobbyId || !actionData) return;
+    const actionsRef = ref(db, `lobbies/${gameState.currentLobbyId}/actions`);
+    push(actionsRef, actionData);
 }
