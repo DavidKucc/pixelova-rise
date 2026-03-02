@@ -1,16 +1,16 @@
-﻿console.log('[DEBUG] game.js loaded v=151');
+﻿console.log('[DEBUG] game.js loaded v=152');
 
-import * as C from './config.js?v=151';
-import { gameState, viewportState } from './state.js?v=151';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=151';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=151';
-import { gameLoop } from './renderer.js?v=151';
-import { runAIDecision } from './ai.js?v=151';
-import { Logger } from './logger.js?v=151';
+import * as C from './config.js?v=152';
+import { gameState, viewportState } from './state.js?v=152';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=152';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=152';
+import { gameLoop } from './renderer.js?v=152';
+import { runAIDecision } from './ai.js?v=152';
+import { Logger } from './logger.js?v=152';
 
 // --- MULTIPLAYER SYNC ---
-import { ref, push, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { db } from '../firebase-config.js?v=151';
+import { ref, push, set, onValue, onDisconnect, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { db } from '../firebase-config.js?v=152';
 
 export const PLAYER_DEFINITIONS = {
     'human': { name: "Hráč 1", color: '#03A9F4', baseColor: '#29B6F6', borderColor: '#81D4FA', type: 'human' },
@@ -18,7 +18,7 @@ export const PLAYER_DEFINITIONS = {
 };
 
 export function initGame(hostStatus = false, playerId = 'human', lobbyId = null) {
-    console.log(`[GAME] Inicializace hry v=151 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
+    console.log(`[GAME] Inicializace hry v=152 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
 
     // Uložení parametrů do globálního stavu (DŮLEŽITÉ!)
     gameState.isHost = hostStatus;
@@ -53,7 +53,7 @@ export function initGame(hostStatus = false, playerId = 'human', lobbyId = null)
         };
     }
 
-    console.log("[GAME] Hráči inicializováni (v151):", gameState.players);
+    console.log("[GAME] Hráči inicializováni (v152):", gameState.players);
 
     gameState.gameBoard = [];
     gameState.structures.clear();
@@ -95,32 +95,31 @@ async function syncWorldGeneration() {
     if (gameState.isHost) {
         console.log("[WORLD] Hostitel generuje svět...");
         gameState.gameBoard = [];
-        const terrainData = []; // Zjednodušená data pro Firebase
+        let terrainString = ''; // Base64 / String pro bezpečný přenos
 
         for (let y = 0; y < C.GRID_SIZE; y++) {
             const row = [];
-            const terrainRow = [];
             for (let x = 0; x < C.GRID_SIZE; x++) {
                 let terrain = 'none';
                 if (Math.random() < C.TERRAIN_DENSITY) {
                     terrain = Math.random() < 0.6 ? 'forest' : 'road';
                 }
                 row.push({ x, y, ownerId: null, structureId: null, terrain, visibleTo: [] });
-                terrainRow.push(terrain === 'none' ? 0 : (terrain === 'forest' ? 1 : 2));
+                terrainString += (terrain === 'none' ? '0' : (terrain === 'forest' ? '1' : '2'));
             }
             gameState.gameBoard.push(row);
-            terrainData.push(terrainRow);
         }
 
         // VYGENEROVAT BUDOVY PRED ODESLANIM NA FIREBASE
         generateStructures();
 
-        // Uložit do Firebase a POČKAT na dokončení, aby to klient mohl stáhnout
-        console.log("[WORLD] Nahrávám data světa a budov na server...");
+        // Uložit do Firebase přes bezpečný JSON string
+        console.log("[WORLD] Nahrávám data světa a budov na server (bezpečná stringifikace)...");
         const structureArray = Array.from(gameState.structures.values());
+
         await set(worldRef, {
-            terrain: terrainData,
-            structures: structureArray,
+            terrainStr: terrainString,
+            structuresJSON: JSON.stringify(structureArray),
             seed: Math.random()
         });
         console.log("[WORLD] Data světa nahrána.");
@@ -128,18 +127,19 @@ async function syncWorldGeneration() {
     } else {
         console.log(`[WORLD] Klient (${gameState.myPlayerId}) čeká na data světa v lobby ${gameState.currentLobbyId}...`);
         const unsub = onValue(worldRef, (snapshot) => {
-            if (snapshot.exists() && snapshot.val().terrain && snapshot.val().structures) {
-                console.log("[WORLD] Data světa dorazila! (v151)");
-                const data = snapshot.val().terrain;
-                const remoteStructures = snapshot.val().structures;
+            if (snapshot.exists() && snapshot.val().terrainStr && snapshot.val().structuresJSON) {
+                console.log("[WORLD] Data světa dorazila! (v152)");
+                const tStr = snapshot.val().terrainStr;
+                const remoteStructures = JSON.parse(snapshot.val().structuresJSON);
 
                 // 1. Rekonstrukce terénu
                 gameState.gameBoard = [];
+                let charIndex = 0;
                 for (let y = 0; y < C.GRID_SIZE; y++) {
                     const row = [];
                     for (let x = 0; x < C.GRID_SIZE; x++) {
-                        const tVal = data[y][x];
-                        const terrain = tVal === 0 ? 'none' : (tVal === 1 ? 'forest' : 'road');
+                        const char = tStr[charIndex++];
+                        const terrain = char === '0' ? 'none' : (char === '1' ? 'forest' : 'road');
                         row.push({ x, y, ownerId: null, structureId: null, terrain, visibleTo: [] });
                     }
                     gameState.gameBoard.push(row);
@@ -227,7 +227,7 @@ function finishInit() {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové Říši! Verze 151 aktivní. Hraješ jako ${gameState.myPlayerId === 'human' ? 'Modrý' : 'Červený'}.`, 'win');
+    logMessage(`Vítej v Pixelové Říši! Verze 152 aktivní. Hraješ jako ${gameState.myPlayerId === 'human' ? 'Modrý' : 'Červený'}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
@@ -579,6 +579,21 @@ export function setupMultiplayerSync() {
             }
         }
     });
+
+    // 2. Sledování cizích akcí (např. obsazení budov)
+    const actionsRef = ref(db, `lobbies/${gameState.currentLobbyId}/actions`);
+    onChildAdded(actionsRef, (snapshot) => {
+        const action = snapshot.val();
+        if (!action) return;
+
+        // Cizí akce aplikujeme lokálně
+        if (action.playerId !== gameState.myPlayerId) {
+            console.log("[SYNC] Přijata cizí akce:", action);
+            if (action.type === 'capture') {
+                captureStructure(action.playerId, action.structureId, true);
+            }
+        }
+    });
 }
 
 export function redirectExpedition(playerId, expId, targetX, targetY) {
@@ -658,12 +673,12 @@ export function buildStructure(playerId, x, y, type) {
     updateUI();
 }
 
-export function captureStructure(playerId, structId) {
+export function captureStructure(playerId, structId, isRemoteAction = false) {
     const struct = gameState.structures.get(structId);
     const player = gameState.players[playerId];
-    if (!struct || !player || player.gold < struct.data.cost) return;
+    if (!struct || !player || player.gold < (struct.data.cost || 0)) return;
 
-    player.gold -= struct.data.cost;
+    player.gold -= (struct.data.cost || 0);
     struct.ownerId = playerId;
     struct.type = 'owned_' + struct.type.replace('visible_', '').replace('hidden_', '');
 
@@ -673,7 +688,19 @@ export function captureStructure(playerId, structId) {
     updateUI();
     updateActionPanel();
     recalculatePlayerIncome(playerId);
-    logMessage(`Budova ${struct.data.name} byla obsazena!`, 'win');
+    logMessage(`Budova ${struct.data.name} byla obsazena ${player.name}!`, 'win');
+
+    // MULTIPLAYER SYNC ACTIONS
+    if (!isRemoteAction && gameState.currentLobbyId && playerId === gameState.myPlayerId) {
+        import('../main.js?v=152').then(m => {
+            m.syncActionToFirebase({
+                type: 'capture',
+                playerId: playerId,
+                structureId: structId,
+                timestamp: Date.now()
+            });
+        });
+    }
 }
 
 export function revealMapAround(cx, cy, radius, playerId = gameState.myPlayerId) {
