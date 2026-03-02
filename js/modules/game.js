@@ -1,24 +1,24 @@
-﻿console.log('[DEBUG] game.js loaded v=152');
+﻿console.log('[DEBUG] game.js loaded v=153');
 
-import * as C from './config.js?v=152';
-import { gameState, viewportState } from './state.js?v=152';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=152';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=152';
-import { gameLoop } from './renderer.js?v=152';
-import { runAIDecision } from './ai.js?v=152';
-import { Logger } from './logger.js?v=152';
+import * as C from './config.js?v=153';
+import { gameState, viewportState } from './state.js?v=153';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=153';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=153';
+import { gameLoop } from './renderer.js?v=153';
+import { runAIDecision } from './ai.js?v=153';
+import { Logger } from './logger.js?v=153';
 
 // --- MULTIPLAYER SYNC ---
 import { ref, push, set, onValue, onDisconnect, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { db } from '../firebase-config.js?v=152';
+import { db } from '../firebase-config.js?v=153';
 
 export const PLAYER_DEFINITIONS = {
     'human': { name: "Hráč 1", color: '#03A9F4', baseColor: '#29B6F6', borderColor: '#81D4FA', type: 'human' },
     'enemy': { name: "Hráč 2", color: '#b71c1c', baseColor: '#d32f2f', borderColor: '#ef5350', type: 'human' }
 };
 
-export function initGame(hostStatus = false, playerId = 'human', lobbyId = null) {
-    console.log(`[GAME] Inicializace hry v=152 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
+export async function initGame(hostStatus = false, playerId = 'human', lobbyId = null) {
+    console.log(`[GAME] Inicializace hry v=153 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
 
     // Uložení parametrů do globálního stavu (DŮLEŽITÉ!)
     gameState.isHost = hostStatus;
@@ -53,7 +53,7 @@ export function initGame(hostStatus = false, playerId = 'human', lobbyId = null)
         };
     }
 
-    console.log("[GAME] Hráči inicializováni (v152):", gameState.players);
+    console.log("[GAME] Hráči inicializováni (v153):", gameState.players);
 
     gameState.gameBoard = [];
     gameState.structures.clear();
@@ -64,15 +64,18 @@ export function initGame(hostStatus = false, playerId = 'human', lobbyId = null)
     gameState.expeditionCounter = 0;
     gameState.fractionalUnits = 0;
 
-    // Vytvoření herního pole - SYNCHRONIZOVANÉ
-    if (gameState.currentLobbyId) {
-        syncWorldGeneration();
-    } else {
-        generateLocalWorld();
-    }
+    // Vracíme Promise, který se vyřeší, až se dokončí finishInit
+    return new Promise((resolve, reject) => {
+        // Vytvoření herního pole - SYNCHRONIZOVANÉ
+        if (gameState.currentLobbyId) {
+            syncWorldGeneration(resolve).catch(reject);
+        } else {
+            generateLocalWorld(resolve);
+        }
+    });
 }
 
-function generateLocalWorld() {
+function generateLocalWorld(resolve) {
     gameState.gameBoard = [];
     for (let y = 0; y < C.GRID_SIZE; y++) {
         const row = [];
@@ -86,10 +89,10 @@ function generateLocalWorld() {
         gameState.gameBoard.push(row);
     }
     generateStructures();
-    finishInit();
+    finishInit(resolve);
 }
 
-async function syncWorldGeneration() {
+async function syncWorldGeneration(resolve) {
     const worldRef = ref(db, `lobbies/${gameState.currentLobbyId}/world`);
 
     if (gameState.isHost) {
@@ -152,7 +155,7 @@ async function syncWorldGeneration() {
                 });
 
                 unsub();
-                finishInit(); // Svět a budovy už máme stažené z Firebase
+                finishInit(resolve); // Svět a budovy už máme stažené z Firebase, spouštíme klienta!
             }
         });
     }
@@ -179,7 +182,7 @@ function generateStructures() {
     }
 }
 
-function finishInit() {
+function finishInit(resolveCallback) {
     const humanBaseX = 50;
     const humanBaseY = 50;
     const enemyBaseX = C.GRID_SIZE - 50;
@@ -227,10 +230,13 @@ function finishInit() {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové Říši! Verze 152 aktivní. Hraješ jako ${gameState.myPlayerId === 'human' ? 'Modrý' : 'Červený'}.`, 'win');
+    logMessage(`Vítej v Pixelové Říši! Verze 153 aktivní. Hraješ jako ${gameState.myPlayerId === 'human' ? 'Modrý' : 'Červený'}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
+
+    // NYNÍ JE HRA KOMPLETNĚ PŘIPRAVENÁ A MŮŽEME ODKRÝT UI
+    if (resolveCallback) resolveCallback();
 }
 
 // --- HERNÍ SMYČKY ---

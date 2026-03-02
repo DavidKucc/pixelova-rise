@@ -54,6 +54,16 @@
         <button class="back-btn" onclick="showScreen('mode-selection')">Zpět do výběru</button>
     </div>
 
+    <!-- LOADING SCREEN -->
+    <div id="loading-screen" class="menu-screen"
+        style="display:none; justify-content: center; align-items: center; flex-direction: column;">
+        <h1 style="color: #ffb74d;">Načítám svět...</h1>
+        <div class="waiting-animation">
+            <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+        </div>
+        <p style="color: #ccc; margin-top: 20px;">Generování mapy a budov, prosím čekejte.</p>
+    </div>
+
     <!-- HERNÍ ROZHRANÍ (skryté) -->
     <div id="game-ui" style="display:none;">
         <div class="info-column">
@@ -106,7 +116,7 @@
     </div>
 
     <!-- ZMĚNA ZDE: Skript je nyní modul a odkazuje na main.js -->
-    <script type="module" src="js/main.js?v=152"></script>
+    <script type="module" src="js/main.js?v=153"></script>
 
 </body>
 
