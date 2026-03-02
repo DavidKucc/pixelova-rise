@@ -1,8 +1,8 @@
-﻿console.log('[DEBUG] renderer.js loaded v=160');
+﻿console.log('[DEBUG] renderer.js loaded v=161');
 
-import { ui } from './ui.js?v=160';
-import { gameState, viewportState } from './state.js?v=160';
-import * as C from './config.js?v=160';
+import { ui } from './ui.js?v=161';
+import { gameState, viewportState } from './state.js?v=161';
+import * as C from './config.js?v=161';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 export function gameLoop() {
@@ -31,8 +31,8 @@ function drawBoard() {
         for (let x = 0; x < GRID_SIZE; x++) {
             const cell = gameState.gameBoard[y][x];
 
-            // OPTIMALIZACE: Pokud není buňka vidět (včetně booleanVisible), kreslíme černo
-            let visible = cell.booleanVisible || cell.visibleTo.includes(gameState.myPlayerId);
+            // OPTIMALIZACE: Pokud není buňka vidět, kreslíme černo
+            let visible = cell.visibleTo.includes(gameState.myPlayerId);
             let finalColor = visible ? (CELL_COLORS[cell.terrain] || CELL_COLORS['none'] || '#3d9440') : CELL_COLORS['hidden'];
 
             ctx.fillStyle = finalColor;
@@ -43,7 +43,7 @@ function drawBoard() {
     // 2. VYKRESLENÍ BUDOV
     gameState.structures.forEach(struct => {
         const structCell = gameState.gameBoard[struct.y][struct.x];
-        const isVisible = structCell.booleanVisible || structCell.visibleTo.includes(gameState.myPlayerId);
+        const isVisible = structCell.visibleTo.includes(gameState.myPlayerId);
 
         if (isVisible) {
             const structScreenX = struct.x * fullCellSize;
