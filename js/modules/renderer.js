@@ -1,8 +1,8 @@
-﻿console.log('[DEBUG] renderer.js loaded v=149');
+﻿console.log('[DEBUG] renderer.js loaded v=151');
 
-import { ui } from './ui.js?v=149';
-import { gameState, viewportState } from './state.js?v=149';
-import * as C from './config.js?v=149';
+import { ui } from './ui.js?v=151';
+import { gameState, viewportState } from './state.js?v=151';
+import * as C from './config.js?v=151';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 export function gameLoop() {
@@ -15,7 +15,7 @@ export function gameLoop() {
 
 function drawBoard() {
     const canvas = document.getElementById('game-canvas');
-    if (!canvas) return;
+    if (!canvas || !gameState.gameBoard || gameState.gameBoard.length < GRID_SIZE) return;
     const ctx = canvas.getContext('2d');
     const { scale, gridPos } = viewportState;
 
