@@ -3,15 +3,15 @@ if (window.MAIN_JS_INITIALIZED) {
     console.warn('[ABORT] main.js už jednou běží. Ruším druhou instanci.');
 } else {
     window.MAIN_JS_INITIALIZED = true;
-    console.log('[DEBUG] main.js loaded v=147');
+    console.log('[DEBUG] main.js loaded v=148');
 }
 
-import { db } from './firebase-config.js?v=147';
+import { db } from './firebase-config.js?v=148';
 import { ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { initGame } from './modules/game.js?v=147';
-import { attachEventListeners } from './modules/input.js?v=147';
+import { initGame } from './modules/game.js?v=148';
+import { attachEventListeners } from './modules/input.js?v=148';
 
-import { gameState } from './modules/state.js?v=147';
+import { gameState } from './modules/state.js?v=148';
 
 export let playerFirebaseRef = null;
 
@@ -19,8 +19,7 @@ function updatePlayerIdentity() {
     gameState.myPlayerId = gameState.isHost ? 'human' : 'enemy';
     console.log(`[LOBBY] Moje ID hráče je: ${gameState.myPlayerId}`);
 }
-export let isReady = false;
-export let isReady = false;
+export let playerIsReady = false;
 
 // Funkce pro detekci parametrů v URL při načtení
 // Spustit kontrolu URL při startu
@@ -44,7 +43,7 @@ function checkUrlParams() {
         }
 
         // Pokud klikne na start v tomto módu, rovnou ho to hodí do lobby po vyplnění jména
-        console.log("[DEBUG] Detekována pozvánka do lobby:", currentLobbyId);
+        console.log("[DEBUG] Detekována pozvánka do lobby:", gameState.currentLobbyId);
     }
 }
 window.showScreen = function (screenId) {
@@ -80,7 +79,7 @@ function joinFirebaseLobby(nickname) {
         window.history.replaceState({ path: newUrl }, '', newUrl);
     }
 
-    const lobbyPlayersRef = ref(db, `lobbies/${currentLobbyId}/players`);
+    const lobbyPlayersRef = ref(db, `lobbies/${gameState.currentLobbyId}/players`);
 
     // Přidat sebe do seznamu
     playerFirebaseRef = push(lobbyPlayersRef);
@@ -88,7 +87,7 @@ function joinFirebaseLobby(nickname) {
     // JSME HOST?
     // Pokud jsme ID lobby právě teď vygenerovali (viz řádek výše), jsme hostitel.
     if (!paramsReady) {
-        isHost = true;
+        gameState.isHost = true;
         console.log("[LOBBY] Jsi hostitelem této bitvy.");
     }
     updatePlayerIdentity();
@@ -127,12 +126,12 @@ function joinFirebaseLobby(nickname) {
 // Tuto funkci volá hráč pro změnu stavu Ready
 window.toggleReady = function () {
     if (!playerFirebaseRef) return;
-    isReady = !isReady;
+    playerIsReady = !playerIsReady;
     const btn = document.getElementById('ready-btn');
-    btn.textContent = isReady ? 'Unready' : 'Ready';
-    btn.classList.toggle('ready-active', isReady);
+    btn.textContent = playerIsReady ? 'Unready' : 'Ready';
+    btn.classList.toggle('ready-active', playerIsReady);
 
-    set(ref(db, `lobbies/${gameState.currentLobbyId}/players/${playerFirebaseRef.key}/ready`), isReady);
+    set(ref(db, `lobbies/${gameState.currentLobbyId}/players/${playerFirebaseRef.key}/ready`), playerIsReady);
 };
 
 // Tuto funkci volá hostitel kliknutím na "Start" v Lobby
@@ -274,13 +273,13 @@ document.getElementById('copy-lobby-btn').addEventListener('click', async () => 
 });
 
 window.onerror = function (msg, url, line) {
-    console.error(`ERROR v147: ${msg} at ${line}`);
+    console.error(`ERROR v148: ${msg} at ${line}`);
     return false;
 };
 // --- SYNCHRONIZAČNÍ EXPORTY ---
 export function syncExpeditionToFirebase(playerId, exp) {
-    if (!currentLobbyId || !exp) return;
-    const expeditionsRef = ref(db, `lobbies/${currentLobbyId}/expeditions/${playerId}/${exp.id}`);
+    if (!gameState.currentLobbyId || !exp) return;
+    const expeditionsRef = ref(db, `lobbies/${gameState.currentLobbyId}/expeditions/${playerId}/${exp.id}`);
     set(expeditionsRef, {
         id: exp.id,
         startX: exp.startX,
