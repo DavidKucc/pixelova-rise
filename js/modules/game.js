@@ -1,16 +1,16 @@
-﻿console.log('[DEBUG] game.js loaded v=149');
+﻿console.log('[DEBUG] game.js loaded v=150');
 
-import * as C from './config.js?v=149';
-import { gameState, viewportState } from './state.js?v=149';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=149';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=149';
-import { gameLoop } from './renderer.js?v=149';
-import { runAIDecision } from './ai.js?v=149';
-import { Logger } from './logger.js?v=149';
+import * as C from './config.js?v=150';
+import { gameState, viewportState } from './state.js?v=150';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=150';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=150';
+import { gameLoop } from './renderer.js?v=150';
+import { runAIDecision } from './ai.js?v=150';
+import { Logger } from './logger.js?v=150';
 
 // --- MULTIPLAYER SYNC ---
 import { ref, push, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { db } from '../firebase-config.js?v=149';
+import { db } from '../firebase-config.js?v=150';
 
 export const PLAYER_DEFINITIONS = {
     'human': { name: "Hráč 1", color: '#03A9F4', baseColor: '#29B6F6', borderColor: '#81D4FA', type: 'human' },
@@ -18,7 +18,7 @@ export const PLAYER_DEFINITIONS = {
 };
 
 export function initGame(hostStatus = false, playerId = 'human', lobbyId = null) {
-    console.log(`[GAME] Inicializace hry v=149 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
+    console.log(`[GAME] Inicializace hry v=150 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
 
     // Uložení parametrů do globálního stavu (DŮLEŽITÉ!)
     gameState.isHost = hostStatus;
@@ -53,7 +53,7 @@ export function initGame(hostStatus = false, playerId = 'human', lobbyId = null)
         };
     }
 
-    console.log("[GAME] Hráči inicializováni (v149):", gameState.players);
+    console.log("[GAME] Hráči inicializováni (v150):", gameState.players);
 
     gameState.gameBoard = [];
     gameState.structures.clear();
@@ -85,6 +85,7 @@ function generateLocalWorld() {
         }
         gameState.gameBoard.push(row);
     }
+    generateStructures();
     finishInit();
 }
 
@@ -110,6 +111,10 @@ async function syncWorldGeneration() {
             gameState.gameBoard.push(row);
             terrainData.push(terrainRow);
         }
+
+        // VYGENEROVAT BUDOVY PRED ODESLANIM NA FIREBASE
+        generateStructures();
+
         // Uložit do Firebase a POČKAT na dokončení, aby to klient mohl stáhnout
         console.log("[WORLD] Nahrávám data světa a budov na server...");
         const structureArray = Array.from(gameState.structures.values());
@@ -124,7 +129,7 @@ async function syncWorldGeneration() {
         console.log(`[WORLD] Klient (${gameState.myPlayerId}) čeká na data světa v lobby ${gameState.currentLobbyId}...`);
         const unsub = onValue(worldRef, (snapshot) => {
             if (snapshot.exists() && snapshot.val().terrain && snapshot.val().structures) {
-                console.log("[WORLD] Data světa dorazila! (v149)");
+                console.log("[WORLD] Data světa dorazila! (v150)");
                 const data = snapshot.val().terrain;
                 const remoteStructures = snapshot.val().structures;
 
@@ -147,34 +152,38 @@ async function syncWorldGeneration() {
                 });
 
                 unsub();
-                finishInit(true); // true = svět už je kompletní nebudovat náhodně
+                finishInit(); // Svět a budovy už máme stažené z Firebase
             }
         });
     }
 }
 
-function finishInit(isWorldSynced = false) {
+function generateStructures() {
     const humanBaseX = 50;
     const humanBaseY = 50;
     const enemyBaseX = C.GRID_SIZE - 50;
     const enemyBaseY = C.GRID_SIZE - 50;
 
-    // Pokud nemáme svět ze synchronizace, vygenerujeme základní budovy (jen pro hostitele/local)
-    if (!isWorldSynced) {
-        const baseSize = 6;
-        createStructure('base', humanBaseX, humanBaseY, baseSize, baseSize, { name: 'Hlavní stan' }, 'human');
-        createStructure('base', enemyBaseX, enemyBaseY, baseSize, baseSize, { name: 'Válečný tábor' }, 'enemy');
+    const baseSize = 6;
+    createStructure('base', humanBaseX, humanBaseY, baseSize, baseSize, { name: 'Hlavní stan' }, 'human');
+    createStructure('base', enemyBaseX, enemyBaseY, baseSize, baseSize, { name: 'Válečný tábor' }, 'enemy');
 
-        // Náhodné struktury
-        for (let i = 0; i < C.NUM_STRUCTURES; i++) {
-            const rand = Math.random();
-            if (rand < 0.35) placeRandomStructure('mine', 2, { name: 'Důl', income: 5, cost: 100 });
-            else if (rand < 0.70) placeRandomStructure('village', 3, { name: 'Vesnice', unit_bonus: 7, cost: 75 });
-            else if (rand < 0.85) placeRandomStructure('crystal_mine', 2, { name: 'Krystalový důl', income: 1, cost: 300 });
-            else if (rand < 0.95) placeRandomStructure('ancient_library', 4, { name: 'Prastará knihovna', reveal_radius: 15, cost: 250 });
-            else placeRandomStructure('trading_post', 3, { name: 'Tržiště', cost: 150 });
-        }
+    // Náhodné struktury
+    for (let i = 0; i < C.NUM_STRUCTURES; i++) {
+        const rand = Math.random();
+        if (rand < 0.35) placeRandomStructure('mine', 2, { name: 'Důl', income: 5, cost: 100 });
+        else if (rand < 0.70) placeRandomStructure('village', 3, { name: 'Vesnice', unit_bonus: 7, cost: 75 });
+        else if (rand < 0.85) placeRandomStructure('crystal_mine', 2, { name: 'Krystalový důl', income: 1, cost: 300 });
+        else if (rand < 0.95) placeRandomStructure('ancient_library', 4, { name: 'Prastará knihovna', reveal_radius: 15, cost: 250 });
+        else placeRandomStructure('trading_post', 3, { name: 'Tržiště', cost: 150 });
     }
+}
+
+function finishInit() {
+    const humanBaseX = 50;
+    const humanBaseY = 50;
+    const enemyBaseX = C.GRID_SIZE - 50;
+    const enemyBaseY = C.GRID_SIZE - 50;
 
     // MULTIPLAYER SYNC: Připojit se k odběru cizích expedic
     if (gameState.currentLobbyId) {
@@ -218,7 +227,7 @@ function finishInit(isWorldSynced = false) {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové Říši! Verze 149 aktivní. Hraješ jako ${gameState.myPlayerId === 'human' ? 'Modrý' : 'Červený'}.`, 'win');
+    logMessage(`Vítej v Pixelové Říši! Verze 150 aktivní. Hraješ jako ${gameState.myPlayerId === 'human' ? 'Modrý' : 'Červený'}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
