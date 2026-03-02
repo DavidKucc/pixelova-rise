@@ -1,16 +1,16 @@
-﻿console.log('[DEBUG] game.js loaded v=157');
+﻿console.log('[DEBUG] game.js loaded v=158');
 
-import * as C from './config.js?v=157';
-import { gameState, viewportState } from './state.js?v=157';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=157';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=157';
-import { gameLoop } from './renderer.js?v=157';
-import { runAIDecision } from './ai.js?v=157';
-import { Logger } from './logger.js?v=157';
+import * as C from './config.js?v=158';
+import { gameState, viewportState } from './state.js?v=158';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=158';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=158';
+import { gameLoop } from './renderer.js?v=158';
+import { runAIDecision } from './ai.js?v=158';
+import { Logger } from './logger.js?v=158';
 
 // --- MULTIPLAYER SYNC ---
 import { ref, push, set, onValue, onDisconnect, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { db } from '../firebase-config.js?v=157';
+import { db } from '../firebase-config.js?v=158';
 
 export const PLAYER_DEFINITIONS = {
     'human': { name: "Hráč 1", color: '#03A9F4', baseColor: '#29B6F6', borderColor: '#81D4FA', type: 'human' },
@@ -18,7 +18,7 @@ export const PLAYER_DEFINITIONS = {
 };
 
 export async function initGame(hostStatus = false, playerId = 'human', lobbyId = null) {
-    console.log(`[GAME] Inicializace hry v=157 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
+    console.log(`[GAME] Inicializace hry v=158 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
 
     // Uložení parametrů do globálního stavu (DŮLEŽITÉ!)
     gameState.isHost = hostStatus;
@@ -53,7 +53,7 @@ export async function initGame(hostStatus = false, playerId = 'human', lobbyId =
         };
     }
 
-    console.log("[GAME] Hráči inicializováni (v157):", gameState.players);
+    console.log("[GAME] Hráči inicializováni (v158):", gameState.players);
 
     gameState.gameBoard = [];
     gameState.structures.clear();
@@ -131,7 +131,7 @@ async function syncWorldGeneration(resolve) {
         console.log(`[WORLD] Klient (${gameState.myPlayerId}) čeká na data světa v lobby ${gameState.currentLobbyId}...`);
         const unsub = onValue(worldRef, (snapshot) => {
             if (snapshot.exists() && snapshot.val().terrainStr && snapshot.val().structuresJSON) {
-                console.log("[WORLD] Data světa dorazila! (v157)");
+                console.log("[WORLD] Data světa dorazila! (v158)");
                 const tStr = snapshot.val().terrainStr;
                 const remoteStructures = JSON.parse(snapshot.val().structuresJSON);
 
@@ -234,7 +234,7 @@ function finishInit(resolveCallback) {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové Říši! Verze 157 aktivní. Hraješ jako ${gameState.myPlayerId === 'human' ? 'Modrý' : 'Červený'}.`, 'win');
+    logMessage(`Vítej v Pixelové Říši! Verze 158 aktivní. Hraješ jako ${gameState.myPlayerId === 'human' ? 'Modrý' : 'Červený'}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
@@ -249,7 +249,7 @@ export function recalculatePlayerIncome(playerId) {
 
     let income = C.BASE_INCOME;
     gameState.structures.forEach(s => {
-        if (s.ownerId === playerId && s.data.income) {
+        if (s && s.ownerId === playerId && s.data && s.data.income) {
             income += s.data.income;
         }
     });
@@ -268,14 +268,14 @@ function gameTick() {
 
         // Údržba budov
         gameState.structures.forEach(s => {
-            if (s.ownerId === playerId && s.data.upkeep) {
+            if (s && s.ownerId === playerId && s.data && s.data.upkeep) {
                 player.gold -= s.data.upkeep.gold;
             }
         });
 
         // Produkce krystalů z dolů
         gameState.structures.forEach(s => {
-            if (s.ownerId === playerId && s.type === 'owned_crystal_mine') {
+            if (s && s.ownerId === playerId && s.type === 'owned_crystal_mine' && s.data) {
                 player.crystals += (s.data.income || 0) / 15; // Krystaly jsou pomalejší
             }
         });
@@ -568,7 +568,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = nu
 
     // MULTIPLAYER SYNC
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=157').then(m => {
+        import('../main.js?v=158').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
