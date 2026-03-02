@@ -1,8 +1,8 @@
-﻿console.log('[DEBUG] renderer.js loaded v=147');
+﻿console.log('[DEBUG] renderer.js loaded v=149');
 
-import { ui } from './ui.js?v=147';
-import { gameState, viewportState } from './state.js?v=147';
-import * as C from './config.js?v=147';
+import { ui } from './ui.js?v=149';
+import { gameState, viewportState } from './state.js?v=149';
+import * as C from './config.js?v=149';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 export function gameLoop() {
@@ -30,12 +30,10 @@ function drawBoard() {
     for (let y = 0; y < GRID_SIZE; y++) {
         for (let x = 0; x < GRID_SIZE; x++) {
             const cell = gameState.gameBoard[y][x];
-            let finalColor = CELL_COLORS['hidden'];
 
-            // MULTIPLAYER: Vidím jen to co prozkoumal "já"
-            if (cell.booleanVisible || cell.visibleTo.includes(gameState.myPlayerId)) {
-                finalColor = CELL_COLORS[cell.terrain] || CELL_COLORS['none'] || '#222';
-            }
+            // OPTIMALIZACE: Pokud není buňka vidět (včetně booleanVisible), kreslíme černo
+            let visible = cell.booleanVisible || cell.visibleTo.includes(gameState.myPlayerId);
+            let finalColor = visible ? (CELL_COLORS[cell.terrain] || CELL_COLORS['none'] || '#3d9440') : CELL_COLORS['hidden'];
 
             ctx.fillStyle = finalColor;
             ctx.fillRect(x * fullCellSize, y * fullCellSize, CELL_SIZE, CELL_SIZE);
@@ -45,7 +43,9 @@ function drawBoard() {
     // 2. VYKRESLENÍ BUDOV
     gameState.structures.forEach(struct => {
         const structCell = gameState.gameBoard[struct.y][struct.x];
-        if (structCell.visibleTo.includes(gameState.myPlayerId)) {
+        const isVisible = structCell.booleanVisible || structCell.visibleTo.includes(gameState.myPlayerId);
+
+        if (isVisible) {
             const structScreenX = struct.x * fullCellSize;
             const structScreenY = struct.y * fullCellSize;
 

@@ -1,16 +1,16 @@
-﻿console.log('[DEBUG] game.js loaded v=147');
+﻿console.log('[DEBUG] game.js loaded v=149');
 
-import * as C from './config.js?v=147';
-import { gameState, viewportState } from './state.js?v=147';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=147';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=147';
-import { gameLoop } from './renderer.js?v=147';
-import { runAIDecision } from './ai.js?v=147';
-import { Logger } from './logger.js?v=147';
+import * as C from './config.js?v=149';
+import { gameState, viewportState } from './state.js?v=149';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=149';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=149';
+import { gameLoop } from './renderer.js?v=149';
+import { runAIDecision } from './ai.js?v=149';
+import { Logger } from './logger.js?v=149';
 
 // --- MULTIPLAYER SYNC ---
 import { ref, push, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { db } from '../firebase-config.js?v=147';
+import { db } from '../firebase-config.js?v=149';
 
 export const PLAYER_DEFINITIONS = {
     'human': { name: "Hráč 1", color: '#03A9F4', baseColor: '#29B6F6', borderColor: '#81D4FA', type: 'human' },
@@ -18,7 +18,7 @@ export const PLAYER_DEFINITIONS = {
 };
 
 export function initGame(hostStatus = false, playerId = 'human', lobbyId = null) {
-    console.log(`[GAME] Inicializace hry v=147 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
+    console.log(`[GAME] Inicializace hry v=149 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
 
     // Uložení parametrů do globálního stavu (DŮLEŽITÉ!)
     gameState.isHost = hostStatus;
@@ -53,7 +53,7 @@ export function initGame(hostStatus = false, playerId = 'human', lobbyId = null)
         };
     }
 
-    console.log("[GAME] Hráči inicializováni (v110):", gameState.players);
+    console.log("[GAME] Hráči inicializováni (v149):", gameState.players);
 
     gameState.gameBoard = [];
     gameState.structures.clear();
@@ -124,7 +124,7 @@ async function syncWorldGeneration() {
         console.log(`[WORLD] Klient (${gameState.myPlayerId}) čeká na data světa v lobby ${gameState.currentLobbyId}...`);
         const unsub = onValue(worldRef, (snapshot) => {
             if (snapshot.exists() && snapshot.val().terrain && snapshot.val().structures) {
-                console.log("[WORLD] Data světa dorazila! (v147)");
+                console.log("[WORLD] Data světa dorazila! (v149)");
                 const data = snapshot.val().terrain;
                 const remoteStructures = snapshot.val().structures;
 
@@ -182,9 +182,16 @@ function finishInit(isWorldSynced = false) {
     }
 
     // ÚVODNÍ ODHALENÍ MAPY (aby nebyla černá obrazovka!)
-    // Hostitel vidí své okolí, klient své
+    // Oběma hráčům odhalíme jejich základny lokálně
     revealMapAround(humanBaseX, humanBaseY, 20, 'human');
     revealMapAround(enemyBaseX, enemyBaseY, 20, 'enemy');
+
+    // Pro jistotu ještě jednou explicitně pro sebe
+    if (gameState.myPlayerId === 'human') {
+        revealMapAround(humanBaseX, humanBaseY, 20, 'human');
+    } else {
+        revealMapAround(enemyBaseX, enemyBaseY, 20, 'enemy');
+    }
 
     // Viewport
     viewportState.scale = 0.5;
@@ -211,7 +218,7 @@ function finishInit(isWorldSynced = false) {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage('Vítej v Pixelové Říši! Verze 141 aktivní.', 'win');
+    logMessage(`Vítej v Pixelové Říši! Verze 149 aktivní. Hraješ jako ${gameState.myPlayerId === 'human' ? 'Modrý' : 'Červený'}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
