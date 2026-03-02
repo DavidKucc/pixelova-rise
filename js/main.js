@@ -3,15 +3,15 @@ if (window.MAIN_JS_INITIALIZED) {
     console.warn('[ABORT] main.js už jednou běží. Ruším druhou instanci.');
 } else {
     window.MAIN_JS_INITIALIZED = true;
-    console.log('[DEBUG] main.js loaded v=153');
+    console.log('[DEBUG] main.js loaded v=154');
 }
 
-import { db } from './firebase-config.js?v=153';
+import { db } from './firebase-config.js?v=154';
 import { ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { initGame } from './modules/game.js?v=153';
-import { attachEventListeners } from './modules/input.js?v=153';
+import { initGame } from './modules/game.js?v=154';
+import { attachEventListeners } from './modules/input.js?v=154';
 
-import { gameState } from './modules/state.js?v=153';
+import { gameState } from './modules/state.js?v=154';
 
 export let playerFirebaseRef = null;
 
@@ -153,15 +153,35 @@ window.hostStartGame = function () {
     }, { onlyOnce: true });
 };
 
-function startGameLocally() {
+async function startGameLocally() {
     console.log("HRA STARTUJE!");
-    window.showScreen('game-ui');
 
-    // Malá prodleva pro jistotu, že UI je vykreslené a moduly jsou načtené
+    // Zobrazit Loading Screen
+    window.showScreen('loading-screen');
+
+    // Inicializace hry je nyní asynchronní
+    await initGame(gameState.isHost, gameState.myPlayerId, gameState.currentLobbyId);
+
+    // Jakmile je mapa na 100% načtena, odemkneme UI:
+    window.showScreen('game-ui');
+    attachEventListeners(() => {
+        window.showScreen('loading-screen');
+        initGame(gameState.isHost, gameState.myPlayerId, gameState.currentLobbyId).then(() => {
+            window.showScreen('game-ui');
+        });
+    });
+
+    // Pojistka překreslení plátna po zobrazení divu
     setTimeout(() => {
-        initGame(gameState.isHost, gameState.myPlayerId, gameState.currentLobbyId);
-        attachEventListeners(() => initGame(gameState.isHost, gameState.myPlayerId, gameState.currentLobbyId));
-    }, 150);
+        const vp = document.getElementById('game-viewport');
+        const canvas = document.getElementById('game-canvas');
+        if (vp && canvas) {
+            canvas.width = vp.clientWidth;
+            canvas.height = vp.clientHeight;
+        }
+        // Vynutit vykreslení ihned, co se ukáže panel
+        if (gameState) gameState.needsRedraw = true;
+    }, 100);
 }
 
 function updateLobbyUI(players) {
@@ -273,7 +293,7 @@ document.getElementById('copy-lobby-btn').addEventListener('click', async () => 
 });
 
 window.onerror = function (msg, url, line) {
-    console.error(`ERROR v153: ${msg} at ${line}`);
+    console.error(`ERROR v154: ${msg} at ${line}`);
     return false;
 };
 // --- SYNCHRONIZAČNÍ EXPORTY ---
