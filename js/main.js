@@ -6,14 +6,14 @@ if (window.MAIN_JS_INITIALIZED) {
     console.log('[DEBUG] main.js loaded v=163');
 }
 
-import { db } from './firebase-config.js?v=166';
+import { db } from './firebase-config.js?v=167';
 import { ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { initGame } from './modules/game.js?v=166';
-import { attachEventListeners } from './modules/input.js?v=166';
+import { initGame } from './modules/game.js?v=167';
+import { attachEventListeners } from './modules/input.js?v=167';
 
 window.attachEventListeners = attachEventListeners;
 
-import { gameState } from './modules/state.js?v=166';
+import { gameState } from './modules/state.js?v=167';
 
 export let playerFirebaseRef = null;
 
@@ -130,7 +130,12 @@ function joinFirebaseLobby(nickname) {
     // POSLOUCHAT START HRY (od hostitele nebo synchronizovaně)
     const gameStatusRef = ref(db, `lobbies/${gameState.currentLobbyId}/status`);
     onValue(gameStatusRef, (snapshot) => {
-        if (snapshot.val() === 'started') {
+        const val = snapshot.val();
+        if (typeof val === 'string' && val.startsWith('started_')) {
+            gameState.sessionToken = val.split('_')[1];
+            startGameLocally();
+        } else if (val === 'started') {
+            gameState.sessionToken = 'legacy';
             startGameLocally();
         }
     });
@@ -159,7 +164,8 @@ window.hostStartGame = function () {
 
         if (allReady) {
             const gameStatusRef = ref(db, `lobbies/${gameState.currentLobbyId}/status`);
-            set(gameStatusRef, 'started');
+            const sessionToken = Date.now().toString();
+            set(gameStatusRef, 'started_' + sessionToken);
         } else {
             alert('Všichni hráči musí být Ready před startem!');
         }

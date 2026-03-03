@@ -1,16 +1,16 @@
 ﻿console.log('[DEBUG] game.js loaded v=163');
 
-import * as C from './config.js?v=163';
-import { gameState, viewportState } from './state.js?v=163';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=163';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=163';
-import { gameLoop } from './renderer.js?v=163';
-import { runAIDecision } from './ai.js?v=163';
-import { Logger } from './logger.js?v=163';
+import * as C from './config.js?v=167';
+import { gameState, viewportState } from './state.js?v=167';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=167';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=167';
+import { gameLoop } from './renderer.js?v=167';
+import { runAIDecision } from './ai.js?v=167';
+import { Logger } from './logger.js?v=167';
 
 // --- MULTIPLAYER SYNC ---
 import { ref, push, set, onValue, onDisconnect, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { db } from '../firebase-config.js?v=163';
+import { db } from '../firebase-config.js?v=167';
 
 export async function initGame(hostStatus = false, playerId = 'local_player', lobbyId = null, playersData = null) {
     console.log(`[GAME] Inicializace hry v=163 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
@@ -136,39 +136,46 @@ async function syncWorldGeneration(resolve) {
         await set(worldRef, {
             terrainStr: terrainString,
             structuresJSON: JSON.stringify(structureArray),
-            seed: Math.random()
+            seed: Math.random(),
+            sessionToken: gameState.sessionToken || 'legacy'
         });
         console.log("[WORLD] Data světa nahrána.");
         finishInit(resolve);
     } else {
-        console.log(`[WORLD] Klient (${gameState.myPlayerId}) čeká na data světa v lobby ${gameState.currentLobbyId}...`);
+        console.log(`[WORLD] Klient (${gameState.myPlayerId}) čeká na data světa pro session ${gameState.sessionToken}...`);
         const unsub = onValue(worldRef, (snapshot) => {
-            if (snapshot.exists() && snapshot.val().terrainStr && snapshot.val().structuresJSON) {
-                console.log("[WORLD] Data světa dorazila! (v161)");
-                const tStr = snapshot.val().terrainStr;
-                const remoteStructures = JSON.parse(snapshot.val().structuresJSON);
+            const data = snapshot.val();
+            if (snapshot.exists() && data && data.terrainStr && data.structuresJSON) {
+                // Skutečně checkneme token, abychom nenatáhli starou mapu z minulé relace!
+                if (data.sessionToken === gameState.sessionToken || gameState.sessionToken === 'legacy') {
+                    console.log("[WORLD] Aktuální Data světa dorazila! (v167)");
+                    const tStr = data.terrainStr;
+                    const remoteStructures = JSON.parse(data.structuresJSON);
 
-                // 1. Rekonstrukce terénu
-                gameState.gameBoard = [];
-                let charIndex = 0;
-                for (let y = 0; y < C.GRID_SIZE; y++) {
-                    const row = [];
-                    for (let x = 0; x < C.GRID_SIZE; x++) {
-                        const char = tStr[charIndex++];
-                        const terrain = char === '0' ? 'none' : (char === '1' ? 'forest' : 'road');
-                        row.push({ x, y, ownerId: null, structureId: null, terrain, visibleTo: [] });
+                    // 1. Rekonstrukce terénu
+                    gameState.gameBoard = [];
+                    let charIndex = 0;
+                    for (let y = 0; y < C.GRID_SIZE; y++) {
+                        const row = [];
+                        for (let x = 0; x < C.GRID_SIZE; x++) {
+                            const char = tStr[charIndex++];
+                            const terrain = char === '0' ? 'none' : (char === '1' ? 'forest' : 'road');
+                            row.push({ x, y, ownerId: null, structureId: null, terrain, visibleTo: [] });
+                        }
+                        gameState.gameBoard.push(row);
                     }
-                    gameState.gameBoard.push(row);
+
+                    // 2. Rekonstrukce budov
+                    gameState.structures.clear();
+                    remoteStructures.forEach(s => {
+                        createStructure(s.type, s.x, s.y, s.w, s.h, s.data, s.ownerId, s.id);
+                    });
+
+                    unsub();
+                    finishInit(resolve); // Svět a budovy už máme stažené z Firebase, spouštíme klienta!
+                } else {
+                    console.log("[WORLD] Ignoruji starý svět z minulé session...");
                 }
-
-                // 2. Rekonstrukce budov
-                gameState.structures.clear();
-                remoteStructures.forEach(s => {
-                    createStructure(s.type, s.x, s.y, s.w, s.h, s.data, s.ownerId, s.id);
-                });
-
-                unsub();
-                finishInit(resolve); // Svět a budovy už máme stažené z Firebase, spouštíme klienta!
             }
         });
     }
@@ -616,7 +623,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = nu
 
     // MULTIPLAYER SYNC
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=163').then(m => {
+        import('../main.js?v=167').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -712,7 +719,7 @@ export function redirectExpedition(playerId, expId, targetX, targetY) {
 
     // MULTIPLAYER SYNC PŘESMĚROVÁNÍ
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=166').then(m => {
+        import('../main.js?v=167').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -748,7 +755,7 @@ export function splitExpedition(playerId, expId, targetX, targetY, percent) {
 
     // MULTIPLAYER SYNC ROZDĚLENÍ A ZMENŠENÍ PŮVODNÍ
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=166').then(m => {
+        import('../main.js?v=167').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
             m.syncExpeditionToFirebase(playerId, newExp);
         });
