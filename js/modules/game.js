@@ -709,6 +709,13 @@ export function redirectExpedition(playerId, expId, targetX, targetY) {
     gameState.needsRedraw = true;
 
     logMessage(`Expedice #${exp.id} přesměrována na [${targetX}, ${targetY}].`);
+
+    // MULTIPLAYER SYNC PŘESMĚROVÁNÍ
+    if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
+        import('../main.js?v=166').then(m => {
+            m.syncExpeditionToFirebase(playerId, exp);
+        });
+    }
 }
 
 export function splitExpedition(playerId, expId, targetX, targetY, percent) {
@@ -738,6 +745,14 @@ export function splitExpedition(playerId, expId, targetX, targetY, percent) {
     };
     player.activeExpeditions.push(newExp);
     logMessage(`Expedice #${exp.id} rozdělena! Nová expedice #${newExp.id} vyslána s ${splitUnits} jednotkami.`);
+
+    // MULTIPLAYER SYNC ROZDĚLENÍ A ZMENŠENÍ PŮVODNÍ
+    if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
+        import('../main.js?v=166').then(m => {
+            m.syncExpeditionToFirebase(playerId, exp);
+            m.syncExpeditionToFirebase(playerId, newExp);
+        });
+    }
 }
 
 export function gatherExpeditions(playerId, targetX, targetY) {
