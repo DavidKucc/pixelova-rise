@@ -248,7 +248,24 @@ function finishInit(resolveCallback) {
     requestAnimationFrame(physicsLoop);
 
     // NYNÍ JE HRA KOMPLETNĚ PŘIPRAVENÁ A MŮŽEME ODKRÝT UI
-    if (resolveCallback) resolveCallback();
+    window.showScreen('game-ui');
+
+    // Zapojení vstupních listenerů (mouse/keyboard events)
+    import('../main.js?v=163').then(m => {
+        if (window.attachEventListeners) window.attachEventListeners(); // v main.js attach fn wrapper
+    });
+
+    // Pojistka překreslení plátna přesně poté, co dom odryl CSS vrstvu DIVu
+    setTimeout(() => {
+        const vp = document.getElementById('game-viewport');
+        const canvas = document.getElementById('game-canvas');
+        if (vp && canvas) {
+            canvas.width = vp.clientWidth;
+            canvas.height = vp.clientHeight;
+        }
+        if (gameState) gameState.needsRedraw = true;
+        if (resolveCallback) resolveCallback();
+    }, 100);
 }
 
 export function recalculatePlayerIncome(playerId) {

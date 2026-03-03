@@ -289,8 +289,6 @@ export function attachEventListeners(initGame) {
     window.addEventListener('mouseup', onMouseUp);
     ui.viewport.addEventListener('mouseleave', onMouseUp);
     ui.viewport.addEventListener('wheel', onWheel, { passive: false });
-    ui.viewport.addEventListener('click', onGridClick);
-    ui.viewport.addEventListener('dblclick', onDoubleClick);
     ui.viewport.addEventListener('contextmenu', handleRightClick);
 
     // Vlastní logika pro odchycení pravého dvojkliku, který prohlížeč nativně moc dobře nepodporuje

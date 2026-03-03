@@ -6,12 +6,14 @@ if (window.MAIN_JS_INITIALIZED) {
     console.log('[DEBUG] main.js loaded v=163');
 }
 
-import { db } from './firebase-config.js?v=163';
+import { db } from './firebase-config.js?v=165';
 import { ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { initGame } from './modules/game.js?v=163';
-import { attachEventListeners } from './modules/input.js?v=163';
+import { initGame } from './modules/game.js?v=165';
+import { attachEventListeners } from './modules/input.js?v=165';
 
-import { gameState } from './modules/state.js?v=163';
+window.attachEventListeners = attachEventListeners;
+
+import { gameState } from './modules/state.js?v=165';
 
 export let playerFirebaseRef = null;
 
@@ -194,21 +196,8 @@ async function startGameLocally() {
     // Inicializace hry je nyní asynchronní
     await initGame(gameState.isHost, gameState.myPlayerId, gameState.currentLobbyId, playersData);
 
-    // Jakmile je mapa na 100% načtena, odemkneme UI:
-    window.showScreen('game-ui');
-    attachEventListeners();
-
-    // Pojistka překreslení plátna po zobrazení divu
-    setTimeout(() => {
-        const vp = document.getElementById('game-viewport');
-        const canvas = document.getElementById('game-canvas');
-        if (vp && canvas) {
-            canvas.width = vp.clientWidth;
-            canvas.height = vp.clientHeight;
-        }
-        // Vynutit vykreslení ihned, co se ukáže panel
-        if (gameState) gameState.needsRedraw = true;
-    }, 100);
+    // Vynutit vykreslení ihned, co se ukáže panel
+    if (gameState) gameState.needsRedraw = true;
 }
 
 function updateLobbyUI(players) {
@@ -319,7 +308,7 @@ document.getElementById('copy-lobby-btn').addEventListener('click', async () => 
 });
 
 window.onerror = function (msg, url, line) {
-    console.error(`ERROR v163: ${msg} at ${line}`);
+    console.error(`ERROR v165: ${msg} at ${line}`);
     return false;
 };
 // --- SYNCHRONIZAČNÍ EXPORTY ---
