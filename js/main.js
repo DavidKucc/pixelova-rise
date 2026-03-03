@@ -131,6 +131,15 @@ function joinFirebaseLobby(nickname) {
     const gameStatusRef = ref(db, `lobbies/${gameState.currentLobbyId}/status`);
     onValue(gameStatusRef, (snapshot) => {
         const val = snapshot.val();
+
+        // Záchrana proti starým událostem:
+        // Jestliže se hra tváří jako zapnutá, ale my sami v menu ani nejsme "Ready",
+        // znamená to, že se jedná o nečistý `started` status z předešlé opuštěné mapy!
+        if (!playerIsReady && val !== 'waiting') {
+            console.log("[LOBBY] Ignoruji starý spouštěcí signál, hráč ještě nepotvrdil Ready.");
+            return;
+        }
+
         if (typeof val === 'string' && val.startsWith('started_')) {
             gameState.sessionToken = val.split('_')[1];
             startGameLocally();
@@ -165,6 +174,7 @@ window.hostStartGame = function () {
         if (allReady) {
             const gameStatusRef = ref(db, `lobbies/${gameState.currentLobbyId}/status`);
             const sessionToken = Date.now().toString();
+            // Updatujeme session token, to odpálí onValue všem hráčům
             set(gameStatusRef, 'started_' + sessionToken);
         } else {
             alert('Všichni hráči musí být Ready před startem!');
