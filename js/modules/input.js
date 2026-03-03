@@ -49,7 +49,8 @@ function onMouseDown(e) {
         gameState.selectionBox.endX = mouseX;
         gameState.selectionBox.endY = mouseY;
         viewportState.didDrag = false;
-    } else if (e.button === 2) { // Pravá myš -> Panování
+    } else if (e.button === 1) { // PROSTŘEDNÍ tlačítko (Kolečko) -> Panování (Tažení kamery)
+        e.preventDefault(); // Zabrání výchozímu auto-scrollu v prohlížeči
         viewportState.isDragging = true;
         viewportState.didDrag = false;
         viewportState.startPos.x = e.clientX - viewportState.gridPos.x;
@@ -74,7 +75,7 @@ function onMouseMove(e) {
         }
         gameState.needsRedraw = true;
     } else if (viewportState.isDragging) {
-        // Logika pro panování (RMB)
+        // Logika pro panování (MMB - Tažení kamery)
         if (!viewportState.didDrag && Math.hypot(e.clientX - (viewportState.startPos.x + viewportState.gridPos.x), e.clientY - (viewportState.startPos.y + viewportState.gridPos.y)) > 5) {
             viewportState.didDrag = true;
             removeContextMenu();
@@ -93,10 +94,15 @@ function onMouseUp(e) {
         if (viewportState.didDrag) {
             performBoxSelection();
         } else {
+            // Pouhý klik = vyčistit výběr, nebo vybrat pokud je tam expedice
+            if (!e.shiftKey) { // Zmáčknutí Shiftu by mohlo do budoucna přidávat
+                gameState.selectedExpeditionIds = [];
+                gameState.selectedStructureId = null;
+            }
             onGridClick(e);
         }
         gameState.selectionBox.active = false;
-    } else if (e.button === 2) {
+    } else if (e.button === 1) { // Kolečko myši upuštěno
         viewportState.isDragging = false;
     }
 
@@ -185,7 +191,28 @@ function getGridCoordsFromEvent(e) {
 function onGridClick(e) {
     if (viewportState.didDrag) return;
     const coords = getGridCoordsFromEvent(e);
-    if (coords && gameState.gameBoard[coords.y]) handleCellClick(gameState.gameBoard[coords.y][coords.x]);
+    if (!coords || !gameState.gameBoard[coords.y]) return;
+
+    const cell = gameState.gameBoard[coords.y][coords.x];
+    const player = gameState.players[gameState.myPlayerId];
+    if (!player) return;
+
+    // Klik na vlastní objevenou expedici vybere jen tu jednu (případně přidá s shiftem)
+    const hitExp = player.activeExpeditions.find(exp => {
+        const curX = Math.round(exp.startX + (exp.targetX - exp.startX) * exp.progress);
+        const curY = Math.round(exp.startY + (exp.targetY - exp.startY) * exp.progress);
+        const margin = 2;
+        return Math.abs(coords.x - curX) <= margin && Math.abs(coords.y - curY) <= margin;
+    });
+
+    if (hitExp) {
+        gameState.selectedExpeditionIds = [hitExp.id];
+        gameState.selectedStructureId = null;
+        gameState.needsRedraw = true;
+        return;
+    }
+
+    handleCellClick(cell);
 }
 
 function onDoubleClick(e) {
@@ -233,25 +260,8 @@ function handleRightClick(e) {
     if (viewportState.didDrag) return;
     const coords = getGridCoordsFromEvent(e);
     if (!coords) return;
-
-    if (gameState.selectedExpeditionIds.length > 0) {
-        // AKCE PRO VYBRANÉ EXPEDICE
-        const ids = [...gameState.selectedExpeditionIds];
-        if (e.shiftKey) {
-            // SHIFT + Right Click = 50% split
-            ids.forEach(id => splitExpedition(gameState.myPlayerId, id, coords.x, coords.y, 50));
-        } else if (e.ctrlKey) {
-            // CTRL + Right Click = 10% split
-            ids.forEach(id => splitExpedition(gameState.myPlayerId, id, coords.x, coords.y, 10));
-        } else {
-            // Jen Right Click = redirect 100%
-            ids.forEach(id => redirectExpedition(gameState.myPlayerId, id, coords.x, coords.y));
-        }
-        gameState.needsRedraw = true;
-        return;
-    }
-
     if (!gameState.gameBoard[coords.y]) return;
+
     const cell = gameState.gameBoard[coords.y][coords.x];
     const struct = cell.structureId ? gameState.structures.get(cell.structureId) : null;
 
@@ -268,6 +278,29 @@ function handleRightClick(e) {
     }
 }
 
+function handleRightDoubleClick(e) {
+    e.preventDefault();
+    const coords = getGridCoordsFromEvent(e);
+    if (!coords) return;
+
+    if (gameState.selectedExpeditionIds.length > 0) {
+        // AKCE PRO VYBRANÉ EXPEDICE - POVEL K POCHODU (PRAVÝ DVOJKLIK)
+        removeContextMenu();
+        const ids = [...gameState.selectedExpeditionIds];
+        if (e.shiftKey) {
+            // SHIFT + Right Double Click = 50% split
+            ids.forEach(id => splitExpedition(gameState.myPlayerId, id, coords.x, coords.y, 50));
+        } else if (e.ctrlKey) {
+            // CTRL + Right Double Click = 10% split
+            ids.forEach(id => splitExpedition(gameState.myPlayerId, id, coords.x, coords.y, 10));
+        } else {
+            // Jen Right Double Click = redirect 100%
+            ids.forEach(id => redirectExpedition(gameState.myPlayerId, id, coords.x, coords.y));
+        }
+        gameState.needsRedraw = true;
+    }
+}
+
 export function attachEventListeners(initGame) {
     if (ui.canvas.dataset.listenersAttached) return;
 
@@ -278,8 +311,30 @@ export function attachEventListeners(initGame) {
     ui.viewport.addEventListener('mouseleave', onMouseUp);
     ui.viewport.addEventListener('wheel', onWheel, { passive: false });
     ui.viewport.addEventListener('click', onGridClick);
-    ui.viewport.addEventListener('dblclick', onDoubleClick); // Přidán dvojklik
+    ui.viewport.addEventListener('dblclick', onDoubleClick);
     ui.viewport.addEventListener('contextmenu', handleRightClick);
+
+    // Vlastní logika pro odchycení pravého dvojkliku, který prohlížeč nativně moc dobře nepodporuje
+    let rightClickTimeout = null;
+    let rightClickCount = 0;
+
+    ui.viewport.addEventListener('mousedown', (e) => {
+        if (e.button === 2) {
+            rightClickCount++;
+            if (rightClickCount === 1) {
+                // První klik se zpracuje nativně přes contextmenu event, ale nastavíme si timeout na dvojklik
+                rightClickTimeout = setTimeout(() => {
+                    rightClickCount = 0;
+                }, 300); // 300ms rozestup
+            } else if (rightClickCount === 2) {
+                // Druhý klik v časovém limitu!
+                clearTimeout(rightClickTimeout);
+                rightClickCount = 0;
+                handleRightDoubleClick(e);
+            }
+        }
+    });
+
     ui.slider.addEventListener('input', updateSliderLabel);
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.context-menu')) removeContextMenu();

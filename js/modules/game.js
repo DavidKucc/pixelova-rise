@@ -295,7 +295,12 @@ function gameTick() {
                 if (exp.isHolding) continue;
 
                 if (!exp.arrived) {
-                    exp.progress += C.EXPEDITION_SPEED;
+                    const dist = Math.hypot(exp.targetX - exp.startX, exp.targetY - exp.startY);
+
+                    // Konstantní rychlost přepočtená na procentuální podíl pro aktuální cestu
+                    const progressDelta = dist > 0 ? (C.EXPEDITION_SPEED / dist) : 1;
+                    exp.progress += progressDelta;
+
                     if (exp.progress >= 1) {
                         exp.progress = 1;
                         exp.arrived = true;
@@ -303,17 +308,19 @@ function gameTick() {
                     }
                 } else {
                     // Už dorazila, jen odhalujeme mapu kolem cíle (pro jistotu, kdyby se mrak hýbal lehce)
-                    revealMapAround(exp.targetX, exp.targetY, Math.max(5, 2 + Math.floor(Math.sqrt(exp.unitsLeft) / 2)));
+                    revealMapAround(exp.targetX, exp.targetY, Math.max(5, 2 + Math.floor(Math.sqrt(exp.unitsLeft) / 2)), playerId);
                 }
 
                 if (!exp.arrived) {
-                    const curX = Math.round(exp.startX + (exp.targetX - exp.startX) * exp.progress);
-                    const curY = Math.round(exp.startY + (exp.targetY - exp.startY) * exp.progress);
+                    // Odebrán Math.round pro plynulý (sub-pixel) vizuální přesun na mřížce místo "odskakování" o celé buňky
+                    const curX = exp.startX + (exp.targetX - exp.startX) * exp.progress;
+                    const curY = exp.startY + (exp.targetY - exp.startY) * exp.progress;
 
                     // FOG OF WAR: Lokálně odhaluje mapu pouze moje vlastní expedice!
                     if (playerId === gameState.myPlayerId) {
                         const moveRevealRadius = Math.max(5, 2 + Math.floor(Math.sqrt(exp.unitsLeft) / 2));
-                        revealMapAround(curX, curY, moveRevealRadius, playerId);
+                        // Zde už se zaokrouhluje (matice dohledu běží jen v grid pointech)
+                        revealMapAround(Math.round(curX), Math.round(curY), moveRevealRadius, playerId);
                     }
                 }
 
@@ -584,35 +591,52 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = nu
 export function setupMultiplayerSync() {
     if (!gameState.currentLobbyId) return;
 
-    // Dynamicky zjistit, koho máme poslouchat (toho druhého)
-    const otherPlayerId = (gameState.myPlayerId === 'human') ? 'enemy' : 'human';
-    console.log(`[SYNC] Zapínám sledování hráče: ${otherPlayerId}`);
+    // Tady musíme poslouchat VŠECHNY hráče aktivní ve hře (kromě lokálního)
+    Object.keys(gameState.players).forEach(otherPlayerId => {
+        if (otherPlayerId === gameState.myPlayerId) return;
 
-    const expeditionsRef = ref(db, `lobbies/${gameState.currentLobbyId}/expeditions/${otherPlayerId}`);
-    onValue(expeditionsRef, (snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
+        const expeditionsRef = ref(db, `lobbies/${gameState.currentLobbyId}/expeditions/${otherPlayerId}`);
+        onValue(expeditionsRef, (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
 
-        // Resetovat cizí expedice v lokálním stavu a nahrát nové
-        const otherPlayer = gameState.players[otherPlayerId];
-        if (otherPlayer) {
-            otherPlayer.activeExpeditions = [];
-            for (const id in data) {
-                const remote = data[id];
-                otherPlayer.activeExpeditions.push({
-                    id: remote.id,
-                    startX: remote.startX,
-                    startY: remote.startY,
-                    targetX: remote.targetX,
-                    targetY: remote.targetY,
-                    initialUnits: remote.units,
-                    unitsLeft: remote.units,
-                    progress: 0,
-                    arrived: false,
-                    isRemote: true // Příznak, že jde o cizí jednotku
-                });
+            const otherPlayer = gameState.players[otherPlayerId];
+            if (otherPlayer) {
+                // Namísto tvrdého smazání a vynulování "progressu" provádíme merge:
+                // Zachováme stávající jednotky (a jejich fyzický progress pohybu) a přidáme nové
+                const updatedExpeditions = [];
+
+                for (const id in data) {
+                    const remote = data[id];
+                    const existingExp = otherPlayer.activeExpeditions.find(e => e.id === remote.id);
+
+                    if (existingExp) {
+                        // Aktualizace stavu už existující jednotky
+                        existingExp.unitsLeft = remote.units;
+                        existingExp.isRemote = true;
+                        existingExp.targetX = remote.targetX;
+                        existingExp.targetY = remote.targetY;
+                        updatedExpeditions.push(existingExp);
+                    } else {
+                        // Nová expedice od nepřítele, která se právě zrodila
+                        updatedExpeditions.push({
+                            id: remote.id,
+                            startX: remote.startX,
+                            startY: remote.startY,
+                            targetX: remote.targetX,
+                            targetY: remote.targetY,
+                            initialUnits: remote.units,
+                            unitsLeft: remote.units,
+                            progress: 0,
+                            arrived: false,
+                            isRemote: true
+                        });
+                    }
+                }
+
+                otherPlayer.activeExpeditions = updatedExpeditions;
             }
-        }
+        });
     });
 
     // 2. Sledování cizích akcí (např. obsazení budov)
@@ -718,7 +742,7 @@ export function captureStructure(playerId, structId, isRemoteAction = false) {
     struct.type = 'owned_' + struct.type.replace('visible_', '').replace('hidden_', '');
 
     if (struct.type === 'owned_village') player.units += struct.data.unit_bonus;
-    if (struct.type === 'owned_ancient_library') revealMapAround(struct.x, struct.y, struct.data.reveal_radius);
+    if (struct.type === 'owned_ancient_library') revealMapAround(struct.x, struct.y, struct.data.reveal_radius, playerId);
 
     updateUI();
     updateActionPanel();
