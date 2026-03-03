@@ -1,19 +1,19 @@
-Ôªø// js/modules/input.js
-// Zpracov√°n√≠ vstup≈Ø od u≈æivatele (my≈°, zoom, kliknut√≠).
+// js/modules/input.js
+// Zpracov·nÌ vstup˘ od uûivatele (myö, zoom, kliknutÌ).
 console.log('[INPUT] input.js loaded v=163');
 
-import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=163';
-import { viewportState, gameState } from './state.js?v=163';
-import * as C from './config.js?v=163';
-import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition } from './game.js?v=163';
+import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=169';
+import { viewportState, gameState } from './state.js?v=169';
+import * as C from './config.js?v=169';
+import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition } from './game.js?v=169';
 
-// Stav kl√°vesy Q
+// Stav kl·vesy Q
 let isQPressed = false;
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyQ') isQPressed = true;
 
-    // Kl√°vesov√© zkratky
+    // Kl·vesovÈ zkratky
     if (e.code === 'KeyG') {
         const coords = viewportState.lastMouseGridCoords;
         if (coords) gatherExpeditions('human', coords.x, coords.y);
@@ -45,13 +45,13 @@ function onMouseDown(e) {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    if (e.button === 0) { // Lev√° my≈° -> Rozhodov√°n√≠ mezi Ta≈æen√≠m kamery (Pan) a Box Selectem
+    if (e.button === 0) { // Lev· myö -> Rozhodov·nÌ mezi TaûenÌm kamery (Pan) a Box Selectem
         const now = Date.now();
         const isDoubleClick = (now - lastLeftClickTime) < 300;
         lastLeftClickTime = now;
 
         if (isDoubleClick) {
-            // Dvojklik & dr≈æen√≠: V√Ωbƒõrov√Ω box
+            // Dvojklik & drûenÌ: V˝bÏrov˝ box
             gameState.selectionBox.active = true;
             gameState.selectionBox.startX = mouseX;
             gameState.selectionBox.startY = mouseY;
@@ -59,7 +59,7 @@ function onMouseDown(e) {
             gameState.selectionBox.endY = mouseY;
             viewportState.didDrag = false;
         } else {
-            // Jeden klik & dr≈æen√≠: Pohyb mapou (Pan)
+            // Jeden klik & drûenÌ: Pohyb mapou (Pan)
             isPanning = true;
             viewportState.didDrag = false;
             viewportState.startPos.x = e.clientX - viewportState.gridPos.x;
@@ -73,7 +73,7 @@ function onMouseMove(e) {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    // V≈ΩDY aktualizovat sou≈ôadnice pod my≈°√≠
+    // VéDY aktualizovat sou¯adnice pod myöÌ
     viewportState.lastMouseGridCoords = getGridCoordsFromEvent(e);
 
     if (gameState.selectionBox.active) {
@@ -85,7 +85,7 @@ function onMouseMove(e) {
         }
         gameState.needsRedraw = true;
     } else if (isPanning) {
-        // Logika pro panov√°n√≠ (LMB Single Hold - Ta≈æen√≠ kamery)
+        // Logika pro panov·nÌ (LMB Single Hold - TaûenÌ kamery)
         if (!viewportState.didDrag && Math.hypot(e.clientX - (viewportState.startPos.x + viewportState.gridPos.x), e.clientY - (viewportState.startPos.y + viewportState.gridPos.y)) > 5) {
             viewportState.didDrag = true;
             removeContextMenu();
@@ -101,15 +101,15 @@ function onMouseMove(e) {
 function onMouseUp(e) {
     if (e.button === 0) {
         if (gameState.selectionBox.active) {
-            // Ukonƒçen v√Ωbƒõrov√Ω box
+            // UkonËen v˝bÏrov˝ box
             if (viewportState.didDrag) {
                 performBoxSelection();
             }
             gameState.selectionBox.active = false;
         } else if (isPanning) {
-            // Ukonƒçen pan
+            // UkonËen pan
             if (!viewportState.didDrag) {
-                // Nebylo to ta≈æen√≠, tak≈æe to byl norm√°ln√≠ single-click!
+                // Nebylo to taûenÌ, takûe to byl norm·lnÌ single-click!
                 if (!e.shiftKey) {
                     gameState.selectedExpeditionIds = [];
                     gameState.selectedStructureId = null;
@@ -120,7 +120,7 @@ function onMouseUp(e) {
         }
     }
 
-    // Pojistka pro p≈ô√≠pad ztr√°ty focusu
+    // Pojistka pro p¯Ìpad ztr·ty focusu
     if (e.buttons === 0) {
         gameState.selectionBox.active = false;
         isPanning = false;
@@ -141,14 +141,14 @@ function performBoxSelection() {
     if (!player) return;
 
     player.activeExpeditions.forEach(exp => {
-        // P≈ôevod hern√≠ch sou≈ôadnic expedice na obrazovkov√©
+        // P¯evod hernÌch sou¯adnic expedice na obrazovkovÈ
         const curX = Math.round(exp.startX + (exp.targetX - exp.startX) * exp.progress);
         const curY = Math.round(exp.startY + (exp.targetY - exp.startY) * exp.progress);
 
         const screenX = curX * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale + viewportState.gridPos.x;
         const screenY = curY * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale + viewportState.gridPos.y;
 
-        // Hitbox: Expedice je vybr√°na, pokud se jej√≠ mrak (cca 2 bu≈àky polomƒõr) dot√Ωk√° boxu
+        // Hitbox: Expedice je vybr·na, pokud se jejÌ mrak (cca 2 buÚky polomÏr) dot˝k· boxu
         const margin = 2 * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale;
 
         if (screenX + margin >= x1 && screenX - margin <= x2 &&
@@ -159,25 +159,25 @@ function performBoxSelection() {
 
     gameState.selectedExpeditionIds = selectedIds;
     if (selectedIds.length > 0) {
-        gameState.selectedStructureId = null; // Zru≈°it v√Ωbƒõr budovy p≈ôi v√Ωbƒõru arm√°dy
+        gameState.selectedStructureId = null; // Zruöit v˝bÏr budovy p¯i v˝bÏru arm·dy
     }
-    console.log(`[INPUT] Vybr√°no ${selectedIds.length} expedic.`);
+    console.log(`[INPUT] Vybr·no ${selectedIds.length} expedic.`);
 }
 
 function onWheel(e) {
     e.preventDefault();
 
-    // Pokud dr≈æ√≠ Q, mƒõn√≠me velikost expedice
+    // Pokud drûÌ Q, mÏnÌme velikost expedice
     if (isQPressed) {
         let currentValue = parseInt(ui.slider.value, 10);
-        const delta = e.deltaY > 0 ? -5 : 5; // Koleƒçko dol≈Ø = m√©nƒõ, nahoru = v√≠ce
+        const delta = e.deltaY > 0 ? -5 : 5; // KoleËko dol˘ = mÈnÏ, nahoru = vÌce
         currentValue = Math.max(1, Math.min(100, currentValue + delta));
         ui.slider.value = currentValue;
         updateSliderLabel(); // Aktualizace textu
         return;
     }
 
-    // Jinak klasick√Ω zoom
+    // Jinak klasick˝ zoom
     const rect = ui.viewport.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
@@ -211,7 +211,7 @@ function onGridClick(e) {
     const player = gameState.players[gameState.myPlayerId];
     if (!player) return;
 
-    // Klik na vlastn√≠ objevenou expedici vybere jen tu jednu (p≈ô√≠padnƒõ p≈ôid√° s shiftem)
+    // Klik na vlastnÌ objevenou expedici vybere jen tu jednu (p¯ÌpadnÏ p¯id· s shiftem)
     const hitExp = player.activeExpeditions.find(exp => {
         const curX = Math.round(exp.startX + (exp.targetX - exp.startX) * exp.progress);
         const curY = Math.round(exp.startY + (exp.targetY - exp.startY) * exp.progress);
@@ -229,9 +229,9 @@ function onGridClick(e) {
     handleCellClick(cell);
 }
 
-// Odstranƒõn√≠ nativn√≠ho dvojkliku z canvasu (byl p≈ôesunut na 2x prav√Ω a 2x lev√Ω)
+// OdstranÏnÌ nativnÌho dvojkliku z canvasu (byl p¯esunut na 2x prav˝ a 2x lev˝)
 ui.viewport.addEventListener('click', (e) => {
-    // O≈°et≈ôeno z onMouseUp (norm√°ln√≠ klik), nen√≠ pot≈ôeba nativn√≠ listener 
+    // Oöet¯eno z onMouseUp (norm·lnÌ klik), nenÌ pot¯eba nativnÌ listener 
 });
 
 function handleRightClick(e) {
@@ -263,7 +263,7 @@ function handleRightDoubleClick(e) {
     if (!coords) return;
 
     if (gameState.selectedExpeditionIds.length > 0) {
-        // AKCE PRO VYBRAN√â EXPEDICE - POVEL K POCHODU (PRAV√ù DVOJKLIK)
+        // AKCE PRO VYBRAN… EXPEDICE - POVEL K POCHODU (PRAV› DVOJKLIK)
         removeContextMenu();
         const ids = [...gameState.selectedExpeditionIds];
         if (e.shiftKey) {
@@ -291,31 +291,31 @@ export function attachEventListeners(initGame) {
     ui.viewport.addEventListener('wheel', onWheel, { passive: false });
     ui.viewport.addEventListener('contextmenu', handleRightClick);
 
-    // Glob√°ln√≠ pojistka proti probubl√°n√≠ kontextov√©ho menu z mousedown event≈Ø
+    // Glob·lnÌ pojistka proti probubl·nÌ kontextovÈho menu z mousedown event˘
     document.addEventListener('contextmenu', (e) => {
         if (e.target.closest('#game-viewport') || e.target.closest('#game-canvas')) {
             e.preventDefault();
         }
     });
 
-    // Vlastn√≠ logika pro odchycen√≠ prav√©ho dvojkliku, kter√Ω prohl√≠≈æeƒç nativnƒõ moc dob≈ôe nepodporuje
+    // VlastnÌ logika pro odchycenÌ pravÈho dvojkliku, kter˝ prohlÌûeË nativnÏ moc dob¯e nepodporuje
     let rightClickTimeout = null;
     let rightClickCount = 0;
 
     ui.viewport.addEventListener('mousedown', (e) => {
         if (e.button === 2) {
-            e.preventDefault(); // Zabra≈àuje v√Ωchoz√≠mu chov√°n√≠ pro jistotu
+            e.preventDefault(); // ZabraÚuje v˝chozÌmu chov·nÌ pro jistotu
             rightClickCount++;
             if (rightClickCount === 1) {
-                // Prvn√≠ klik se zpracuje nativnƒõ p≈ôes contextmenu event, ale nastav√≠me si timeout na dvojklik
+                // PrvnÌ klik se zpracuje nativnÏ p¯es contextmenu event, ale nastavÌme si timeout na dvojklik
                 rightClickTimeout = setTimeout(() => {
                     rightClickCount = 0;
                 }, 250); // 250ms rozestup na RTS dvojklik
             } else if (rightClickCount === 2) {
-                // Druh√Ω klik v ƒçasov√©m limitu!
+                // Druh˝ klik v ËasovÈm limitu!
                 clearTimeout(rightClickTimeout);
                 rightClickCount = 0;
-                removeContextMenu(); // Uklid√≠me dialog z prvn√≠ho kliku!
+                removeContextMenu(); // UklidÌme dialog z prvnÌho kliku!
                 handleRightDoubleClick(e);
             }
         }
@@ -326,7 +326,7 @@ export function attachEventListeners(initGame) {
         if (!e.target.closest('.context-menu')) removeContextMenu();
     });
     ui.resetBtn.addEventListener('click', () => {
-        if (confirm('Opravdu chcete hru ukonƒçit a vr√°tit se do hlavn√≠ nab√≠dky?')) {
+        if (confirm('Opravdu chcete hru ukonËit a vr·tit se do hlavnÌ nabÌdky?')) {
             window.location.reload();
         }
     });
@@ -342,7 +342,7 @@ export function attachEventListeners(initGame) {
         // Fix: Ochrana proti NaN
         if (isNaN(purchasable) || purchasable < 0) purchasable = 0;
 
-        // Ochrana pro p≈ô√≠pad, ≈æe hr√°ƒç nem√° na 10, ale klikne na 10 (tlaƒç√≠tko by mƒõlo b√Ωt disabled, ale pro jistotu)
+        // Ochrana pro p¯Ìpad, ûe hr·Ë nem· na 10, ale klikne na 10 (tlaËÌtko by mÏlo b˝t disabled, ale pro jistotu)
         if (count !== 'max' && player.gold < purchasable * C.UNIT_COST) return;
 
         const totalCost = purchasable * C.UNIT_COST;

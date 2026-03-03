@@ -1,8 +1,8 @@
-Ôªøconsole.log('[DEBUG] renderer.js loaded v=163');
+console.log('[DEBUG] renderer.js loaded v=163');
 
-import { ui } from './ui.js?v=163';
-import { gameState, viewportState } from './state.js?v=163';
-import * as C from './config.js?v=163';
+import { ui } from './ui.js?v=169';
+import { gameState, viewportState } from './state.js?v=169';
+import * as C from './config.js?v=169';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 export function gameLoop() {
@@ -26,12 +26,12 @@ function drawBoard() {
 
     const fullCellSize = CELL_SIZE + GAP_SIZE;
 
-    // 1. VYKRESLEN√ç TER√âNU A FOG OF WAR
+    // 1. VYKRESLENÕ TER…NU A FOG OF WAR
     for (let y = 0; y < GRID_SIZE; y++) {
         for (let x = 0; x < GRID_SIZE; x++) {
             const cell = gameState.gameBoard[y][x];
 
-            // OPTIMALIZACE: Pokud nen√≠ bu≈àka vidƒõt, kresl√≠me ƒçerno
+            // OPTIMALIZACE: Pokud nenÌ buÚka vidÏt, kreslÌme Ëerno
             let visible = cell.visibleTo.includes(gameState.myPlayerId);
             let finalColor = visible ? (CELL_COLORS[cell.terrain] || CELL_COLORS['none'] || '#3d9440') : CELL_COLORS['hidden'];
 
@@ -40,7 +40,7 @@ function drawBoard() {
         }
     }
 
-    // 2. VYKRESLEN√ç BUDOV
+    // 2. VYKRESLENÕ BUDOV
     gameState.structures.forEach(struct => {
         const structCell = gameState.gameBoard[struct.y][struct.x];
         const isVisible = structCell.visibleTo.includes(gameState.myPlayerId);
@@ -49,11 +49,11 @@ function drawBoard() {
             const structScreenX = struct.x * fullCellSize;
             const structScreenY = struct.y * fullCellSize;
 
-            // Pokud je budova objeven√°, ale nikdo ji nevlastn√≠, d√°me j√≠ "neutr√°ln√≠" barvu budovy
+            // Pokud je budova objeven·, ale nikdo ji nevlastnÌ, d·me jÌ "neutr·lnÌ" barvu budovy
             const owner = struct.ownerId ? gameState.players[struct.ownerId] : null;
             ctx.fillStyle = owner ? owner.baseColor : '#78909C';
 
-            // Abychom se vyvarovali asymetrick√Ωm p≈ôekryv≈Øm, ≈°√≠≈ôka a v√Ω≈°ka budov zapl≈àuje vƒçetnƒõ gap≈Ø
+            // Abychom se vyvarovali asymetrick˝m p¯ekryv˘m, öÌ¯ka a v˝öka budov zaplÚuje vËetnÏ gap˘
             const drawW = struct.w * fullCellSize - GAP_SIZE;
             const drawH = struct.h * fullCellSize - GAP_SIZE;
 
@@ -65,7 +65,7 @@ function drawBoard() {
             ctx.textBaseline = 'middle';
 
             const typeKey = struct.type.replace('owned_', '');
-            let iconChar = STRUCTURE_ICONS[typeKey] || 'üè†';
+            let iconChar = STRUCTURE_ICONS[typeKey] || '??';
 
             ctx.font = `${struct.w * CELL_SIZE * 0.7}px Segoe UI Emoji`;
             ctx.fillText(iconChar, structScreenX + (struct.w * fullCellSize / 2), structScreenY + (struct.h * fullCellSize / 2));
@@ -78,7 +78,7 @@ function drawBoard() {
         }
     });
 
-    // 3. VYKRESLEN√ç EXPEDIC
+    // 3. VYKRESLENÕ EXPEDIC
     // Moje expedice
     if (gameState.players[gameState.myPlayerId]?.activeExpeditions) {
         gameState.players[gameState.myPlayerId].activeExpeditions.forEach(exp => {
@@ -90,7 +90,7 @@ function drawBoard() {
         });
     }
 
-    // Ostatn√≠ expedice (jen v dohledu)
+    // OstatnÌ expedice (jen v dohledu)
     Object.keys(gameState.players).forEach(pId => {
         if (pId === gameState.myPlayerId) return;
         const oPlayer = gameState.players[pId];
@@ -101,7 +101,7 @@ function drawBoard() {
                 const cY = Math.round(curY);
                 const cX = Math.round(curX);
 
-                // Kontrola ≈°ir≈°√≠ho okol√≠ (cca 5x5), proto≈æe render mraku zab√≠r√° tak√© m√≠sto
+                // Kontrola öiröÌho okolÌ (cca 5x5), protoûe render mraku zabÌr· takÈ mÌsto
                 let isVisible = false;
                 for (let dy = -2; dy <= 2; dy++) {
                     for (let dx = -2; dx <= 2; dx++) {
@@ -120,7 +120,7 @@ function drawBoard() {
         }
     });
 
-    // 4. V√ùBƒöROV√ù BOX
+    // 4. V›BÃROV› BOX
     if (gameState.selectionBox?.active && viewportState.didDrag) {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.strokeStyle = 'rgba(3, 169, 244, 0.8)';
@@ -180,13 +180,13 @@ function drawDustIndicators(ctx, x, y) {
                 if (isVisible) break;
             }
 
-            // Kresli radar jen, dokud expedice nen√≠ zasa≈æena m√Ωm rozhledem a je bl√≠zko
+            // Kresli radar jen, dokud expedice nenÌ zasaûena m˝m rozhledem a je blÌzko
             if (dist < RANGE && !isVisible) {
                 const angle = Math.atan2(ey - y, ex - x);
                 const radius = 30;
                 ctx.beginPath();
                 ctx.arc(x * (CELL_SIZE + GAP_SIZE), y * (CELL_SIZE + GAP_SIZE), radius, angle - 0.4, angle + 0.4);
-                // Vykresl√≠ prach v barvƒõ nep≈ô√≠tele
+                // VykreslÌ prach v barvÏ nep¯Ìtele
                 const r = parseInt(enemyPlayer.color.slice(1, 3), 16);
                 const g = parseInt(enemyPlayer.color.slice(3, 5), 16);
                 const b = parseInt(enemyPlayer.color.slice(5, 7), 16);

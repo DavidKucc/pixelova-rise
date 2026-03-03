@@ -1,10 +1,10 @@
-﻿// js/modules/ui.js
-// Zodpovídá za veškerou interakci s DOM elementy (vše mimo Canvas).
+// js/modules/ui.js
+// Zodpov�d� za ve�kerou interakci s DOM elementy (v�e mimo Canvas).
 
 console.log('[DEBUG] ui.js loaded v=163');
 
-import * as C from './config.js?v=163';
-import { gameState } from './state.js?v=163';
+import * as C from './config.js?v=169';
+import { gameState } from './state.js?v=169';
 
 function getEl(id) {
     const el = document.getElementById(id);
@@ -42,7 +42,7 @@ export function updateUI() {
     const stats = {
         'gold-display': Math.floor(player.gold),
         'crystals-display': Math.floor(player.crystals),
-        'income-display': `${player.income}💰/s`,
+        'income-display': `${player.income}??/s`,
         'units-display': player.units,
         'expeditions-display': player.activeExpeditions.length
     };
@@ -74,7 +74,7 @@ export function updateSliderLabel() {
     if (!slider || !sliderVal) return;
     const p = slider.value;
     const u = Math.max(1, Math.ceil(player.units * (p / 100)));
-    sliderVal.textContent = `${p}% (${u} ⚔️)`;
+    sliderVal.textContent = `${p}% (${u} ??)`;
 }
 
 export function updateExpeditionsPanel() {
@@ -83,14 +83,14 @@ export function updateExpeditionsPanel() {
     if (!list || !player) return;
     list.innerHTML = '';
     if (player.activeExpeditions.length === 0) {
-        list.innerHTML = '<p style="text-align:center; font-style:italic; font-size: 0.9em; color: #888;">Žádné aktivní expedice.</p>';
+        list.innerHTML = '<p style="text-align:center; font-style:italic; font-size: 0.9em; color: #888;">��dn� aktivn� expedice.</p>';
         return;
     }
     player.activeExpeditions.forEach(exp => {
         const item = document.createElement('div');
         item.className = 'expedition-item';
         const progressPercent = exp.progress * 100;
-        item.innerHTML = `<span>Expedice #${exp.id} (${exp.unitsLeft}/${exp.initialUnits} ⚔️)</span><div class="expedition-progress-bar"><div class="expedition-progress" style="width: ${progressPercent}%;"></div></div>`;
+        item.innerHTML = `<span>Expedice #${exp.id} (${exp.unitsLeft}/${exp.initialUnits} ??)</span><div class="expedition-progress-bar"><div class="expedition-progress" style="width: ${progressPercent}%;"></div></div>`;
         list.appendChild(item);
     });
 }
@@ -99,7 +99,7 @@ export function updateActionPanel() {
     const panel = ui.actionPanel;
     if (!panel) return;
     if (gameState.selectedStructureId === null) {
-        panel.innerHTML = `<h3>Akční Panel</h3><p>Klikni na budovu pro info.</p>`;
+        panel.innerHTML = `<h3>Ak�n� Panel</h3><p>Klikni na budovu pro info.</p>`;
         return;
     }
     const struct = gameState.structures.get(gameState.selectedStructureId);
@@ -109,7 +109,7 @@ export function updateActionPanel() {
     const player = gameState.players[gameState.myPlayerId];
     if (!isOwned && player) {
         const canAfford = player.gold >= struct.data.cost;
-        html += `<button onclick="captureStructure('${gameState.myPlayerId}', ${struct.id})" ${!canAfford ? 'disabled' : ''}>Obsadit (${struct.data.cost}💰)</button>`;
+        html += `<button onclick="captureStructure('${gameState.myPlayerId}', ${struct.id})" ${!canAfford ? 'disabled' : ''}>Obsadit (${struct.data.cost}??)</button>`;
     }
     panel.innerHTML = html;
 }
@@ -118,7 +118,7 @@ export function logMessage(message, type = 'info') {
     const log = ui.log;
     if (!log) return;
     const msgEl = document.createElement('div');
-    msgEl.innerHTML = `> ${type === 'win' ? '✅' : 'ℹ️'} ${message}`;
+    msgEl.innerHTML = `> ${type === 'win' ? '?' : '??'} ${message}`;
     log.prepend(msgEl);
     if (log.children.length > 50) log.removeChild(log.lastChild);
 }
@@ -140,6 +140,6 @@ window.tradeWithPost = () => {
     const player = gameState.players[gameState.myPlayerId];
     if (player && player.units >= 5) {
         player.units -= 5; player.gold += 200;
-        updateUI(); logMessage(`Vyměněno 5⚔️ za 200💰.`, 'win');
+        updateUI(); logMessage(`Vym�n�no 5?? za 200??.`, 'win');
     }
 };
