@@ -124,23 +124,27 @@ function joinFirebaseLobby(nickname) {
     onValue(gameStatusRef, (snapshot) => {
         const val = snapshot.val();
 
-        // Záchrana proti starým událostem:
-        // Jestliže se hra tváří jako zapnutá, ale my sami v menu ani nejsme "Ready",
-        // znamená to, že se jedná o nečistý `started` status z předešlé opuštěné mapy!
-        if (!playerIsReady && val !== 'waiting') {
-            console.log("[LOBBY] Ignoruji starý spouštěcí signál, hráč ještě nepotvrdil Ready.");
-            return;
-        }
+        // Záchrana proti starým událostem Ghost-Lobby:
+        // Hráč nesmí spustit hru, pokud sám ještě nepotvrdil Ready.
+        const isGhostSignal = (!playerIsReady && val !== 'waiting');
 
         if (typeof val === 'string' && val.startsWith('started_')) {
-            gameState.sessionToken = val.split('_')[1];
-            startGameLocally();
+            const newToken = val.split('_')[1];
+
+            if (!isGhostSignal) {
+                gameState.sessionToken = newToken;
+                startGameLocally();
+            } else {
+                console.log("[LOBBY] Ignoruji starý spouštěcí signál (klient není Ready). Hráč čeká na ZELENÉ odstartování hostitelem...");
+            }
         } else if (val === 'started') {
-            gameState.sessionToken = 'legacy';
-            startGameLocally();
+            if (!isGhostSignal) {
+                gameState.sessionToken = 'legacy';
+                startGameLocally();
+            }
         }
-    });
-}
+    }); // Konec onValue
+} // Konec funkce joinFirebaseLobby
 
 // Tuto funkci volá hráč pro změnu stavu Ready
 window.toggleReady = function () {
@@ -151,6 +155,19 @@ window.toggleReady = function () {
     btn.classList.toggle('ready-active', playerIsReady);
 
     set(ref(db, `lobbies/${gameState.currentLobbyId}/players/${playerFirebaseRef.key}/ready`), playerIsReady);
+
+    // Fallback Join pro klienta vracejícího se do rozehrané mapy z Lobby
+    if (playerIsReady && !gameState.isHost) {
+        const gameStatusRef = ref(db, `lobbies/${gameState.currentLobbyId}/status`);
+        onValue(gameStatusRef, (snapshot) => {
+            const val = snapshot.val();
+            if (val && typeof val === 'string' && val.startsWith('started_')) {
+                gameState.sessionToken = val.split('_')[1];
+                console.log("[LOBBY] Klient se opožděně připojil do již bežící relace! Posílám do Hry...");
+                startGameLocally();
+            }
+        }, { onlyOnce: true });
+    }
 };
 
 // Tuto funkci volá hostitel kliknutím na "Start" v Lobby
