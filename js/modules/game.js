@@ -1,19 +1,19 @@
-﻿console.log('[DEBUG] game.js loaded v=162');
+﻿console.log('[DEBUG] game.js loaded v=163');
 
-import * as C from './config.js?v=162';
-import { gameState, viewportState } from './state.js?v=162';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=162';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=162';
-import { gameLoop } from './renderer.js?v=162';
-import { runAIDecision } from './ai.js?v=162';
-import { Logger } from './logger.js?v=162';
+import * as C from './config.js?v=163';
+import { gameState, viewportState } from './state.js?v=163';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=163';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=163';
+import { gameLoop } from './renderer.js?v=163';
+import { runAIDecision } from './ai.js?v=163';
+import { Logger } from './logger.js?v=163';
 
 // --- MULTIPLAYER SYNC ---
 import { ref, push, set, onValue, onDisconnect, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { db } from '../firebase-config.js?v=162';
+import { db } from '../firebase-config.js?v=163';
 
 export async function initGame(hostStatus = false, playerId = 'local_player', lobbyId = null, playersData = null) {
-    console.log(`[GAME] Inicializace hry v=162 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
+    console.log(`[GAME] Inicializace hry v=163 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
 
     // Uložení parametrů do globálního stavu (DŮLEŽITÉ!)
     gameState.isHost = hostStatus;
@@ -241,7 +241,7 @@ function finishInit(resolveCallback) {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové Říši! Verze 162 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
+    logMessage(`Vítej v Pixelové Říši! Verze 163 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
@@ -575,7 +575,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = nu
 
     // MULTIPLAYER SYNC
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=162').then(m => {
+        import('../main.js?v=163').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -727,7 +727,7 @@ export function captureStructure(playerId, structId, isRemoteAction = false) {
 
     // MULTIPLAYER SYNC ACTIONS
     if (!isRemoteAction && gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=162').then(m => {
+        import('../main.js?v=163').then(m => {
             m.syncActionToFirebase({
                 type: 'capture',
                 playerId: playerId,

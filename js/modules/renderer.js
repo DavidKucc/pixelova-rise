@@ -1,8 +1,8 @@
-﻿console.log('[DEBUG] renderer.js loaded v=162');
+﻿console.log('[DEBUG] renderer.js loaded v=163');
 
-import { ui } from './ui.js?v=162';
-import { gameState, viewportState } from './state.js?v=162';
-import * as C from './config.js?v=162';
+import { ui } from './ui.js?v=163';
+import { gameState, viewportState } from './state.js?v=163';
+import * as C from './config.js?v=163';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 export function gameLoop() {
@@ -50,7 +50,9 @@ function drawBoard() {
             const structScreenY = struct.y * fullCellSize;
 
             // Pokud je budova objevená, ale nikdo ji nevlastní, dáme jí "neutrální" barvu budovy
-            ctx.fillStyle = (struct.ownerId === gameState.myPlayerId) ? '#1976D2' : (struct.ownerId ? '#D32F2F' : '#78909C');
+            const owner = struct.ownerId ? gameState.players[struct.ownerId] : null;
+            ctx.fillStyle = owner ? owner.baseColor : '#78909C';
+
             ctx.fillRect(structScreenX, structScreenY, struct.w * fullCellSize - GAP_SIZE, struct.h * fullCellSize - GAP_SIZE);
 
             // Ikona
@@ -64,10 +66,9 @@ function drawBoard() {
             ctx.font = `${struct.w * CELL_SIZE * 0.7}px Segoe UI Emoji`;
             ctx.fillText(iconChar, structScreenX + (struct.w * fullCellSize / 2), structScreenY + (struct.h * fullCellSize / 2));
 
-            if (struct.ownerId) {
-                const owner = gameState.players[struct.ownerId];
-                ctx.strokeStyle = owner?.borderColor || '#fff';
-                ctx.lineWidth = 2 / scale;
+            if (owner) {
+                ctx.strokeStyle = owner.borderColor || '#fff';
+                ctx.lineWidth = 3 / viewportState.scale;
                 ctx.strokeRect(structScreenX, structScreenY, struct.w * fullCellSize - GAP_SIZE, struct.h * fullCellSize - GAP_SIZE);
             }
         }
