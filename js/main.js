@@ -186,7 +186,12 @@ async function startGameLocally() {
         // ONLINE HRA - Stáhneme si lidi z lobby
         const playersRef = ref(db, `lobbies/${gameState.currentLobbyId}/players`);
         await new Promise((resolve) => {
-            const unsub = onValue(playersRef, (snapshot) => {
+            let unsub;
+            let isResolved = false;
+
+            unsub = onValue(playersRef, (snapshot) => {
+                if (isResolved) return;
+
                 if (!snapshot.exists() || !snapshot.val()) {
                     console.log("[LOBBY] Čekám na Firebase sync hráčů (přišel prázdný v první milisekundě)...");
                     return; // Ignorujeme nulák a čekáme dál!
@@ -199,7 +204,8 @@ async function startGameLocally() {
                     gameState.myPlayerId = playerFirebaseRef.key;
                 }
 
-                unsub(); // Splněno, odepsat posluchač
+                isResolved = true;
+                if (unsub) unsub(); // Bezpečně odepíše posluchač
                 resolve();
             });
         });
