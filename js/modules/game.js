@@ -265,6 +265,61 @@ export function recalculatePlayerIncome(playerId) {
 }
 
 // --- HERNÍ SMYČKY ---
+let lastPhysicsTime = performance.now();
+
+export function physicsLoop(timestamp) {
+    const dt = (timestamp - lastPhysicsTime) / 1000; // vteřiny uběhlé od minulého framu
+    lastPhysicsTime = timestamp;
+
+    let movedAny = false;
+
+    for (const playerId in gameState.players) {
+        const player = gameState.players[playerId];
+        if (!player || !player.activeExpeditions) continue;
+
+        for (let i = player.activeExpeditions.length - 1; i >= 0; i--) {
+            const exp = player.activeExpeditions[i];
+
+            if (exp.isHolding) continue;
+
+            if (!exp.arrived) {
+                const dist = Math.hypot(exp.targetX - exp.startX, exp.targetY - exp.startY);
+
+                // Konstantní rychlost přepočtená posunutá o Delta Time snímků vykreslovacích monitorů
+                const progressDelta = dist > 0 ? ((C.EXPEDITION_SPEED * dt) / dist) : 1;
+                exp.progress += progressDelta;
+
+                if (exp.progress >= 1) {
+                    exp.progress = 1;
+                    exp.arrived = true;
+                    handleExpeditionArrival(playerId, exp);
+                }
+            } else {
+                // Už dorazila
+                if (playerId === gameState.myPlayerId && gameState.logicIntervals) {
+                    revealMapAround(exp.targetX, exp.targetY, Math.max(5, 2 + Math.floor(Math.sqrt(exp.unitsLeft) / 2)), playerId);
+                }
+            }
+
+            if (!exp.arrived) {
+                const curX = exp.startX + (exp.targetX - exp.startX) * exp.progress;
+                const curY = exp.startY + (exp.targetY - exp.startY) * exp.progress;
+
+                // FOG OF WAR: Lokálně odhaluje mapu pouze moje vlastní expedice!
+                if (playerId === gameState.myPlayerId) {
+                    const moveRevealRadius = Math.max(5, 2 + Math.floor(Math.sqrt(exp.unitsLeft) / 2));
+                    revealMapAround(Math.round(curX), Math.round(curY), moveRevealRadius, playerId);
+                }
+                movedAny = true;
+            }
+        }
+    }
+
+    if (movedAny) gameState.needsRedraw = true;
+
+    // Asynchronně točíme dokola jak blesk (cca 60-144x za sekundu v závislosti na monitoru)
+    requestAnimationFrame(physicsLoop);
+}
 
 function gameTick() {
     for (const playerId in gameState.players) {
@@ -288,47 +343,8 @@ function gameTick() {
             }
         });
 
-        // Pohyb expedic
+        // BOJOVÝ SYSTÉM (Meat Grinder)
         if (player.activeExpeditions) {
-            for (let i = player.activeExpeditions.length - 1; i >= 0; i--) {
-                const exp = player.activeExpeditions[i];
-
-                if (exp.isHolding) continue;
-
-                if (!exp.arrived) {
-                    const dist = Math.hypot(exp.targetX - exp.startX, exp.targetY - exp.startY);
-
-                    // Konstantní rychlost přepočtená na procentuální podíl pro aktuální cestu
-                    const progressDelta = dist > 0 ? (C.EXPEDITION_SPEED / dist) : 1;
-                    exp.progress += progressDelta;
-
-                    if (exp.progress >= 1) {
-                        exp.progress = 1;
-                        exp.arrived = true;
-                        handleExpeditionArrival(playerId, exp);
-                    }
-                } else {
-                    // Už dorazila, jen odhalujeme mapu kolem cíle (pro jistotu, kdyby se mrak hýbal lehce)
-                    revealMapAround(exp.targetX, exp.targetY, Math.max(5, 2 + Math.floor(Math.sqrt(exp.unitsLeft) / 2)), playerId);
-                }
-
-                if (!exp.arrived) {
-                    // Odebrán Math.round pro plynulý (sub-pixel) vizuální přesun na mřížce místo "odskakování" o celé buňky
-                    const curX = exp.startX + (exp.targetX - exp.startX) * exp.progress;
-                    const curY = exp.startY + (exp.targetY - exp.startY) * exp.progress;
-
-                    // FOG OF WAR: Lokálně odhaluje mapu pouze moje vlastní expedice!
-                    if (playerId === gameState.myPlayerId) {
-                        const moveRevealRadius = Math.max(5, 2 + Math.floor(Math.sqrt(exp.unitsLeft) / 2));
-                        // Zde už se zaokrouhluje (matice dohledu běží jen v grid pointech)
-                        revealMapAround(Math.round(curX), Math.round(curY), moveRevealRadius, playerId);
-                    }
-                }
-
-                gameState.needsRedraw = true;
-            }
-
-            // BOJOVÝ SYSTÉM (Meat Grinder)
             handleCombatBetweenExpeditions(playerId);
         }
     }
