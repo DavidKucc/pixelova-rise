@@ -1,11 +1,11 @@
 ﻿// js/modules/input.js
 // Zpracování vstupů od uživatele (myš, zoom, kliknutí).
-console.log('[INPUT] input.js loaded v=161');
+console.log('[INPUT] input.js loaded v=162');
 
-import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=161';
-import { viewportState, gameState } from './state.js?v=161';
-import * as C from './config.js?v=161';
-import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition } from './game.js?v=161';
+import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=162';
+import { viewportState, gameState } from './state.js?v=162';
+import * as C from './config.js?v=162';
+import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition } from './game.js?v=162';
 
 // Stav klávesy Q
 let isQPressed = false;
@@ -117,7 +117,7 @@ function performBoxSelection() {
     const y2 = Math.max(box.startY, box.endY);
 
     const selectedIds = [];
-    const player = gameState.players['human'];
+    const player = gameState.players[gameState.myPlayerId];
     if (!player) return;
 
     player.activeExpeditions.forEach(exp => {
@@ -202,7 +202,7 @@ function onDoubleClick(e) {
     }
 
     // 2. Double click na jednotku -> vybrat VŠECHNY viditelné expedice hráče
-    const player = gameState.players['human'];
+    const player = gameState.players[gameState.myPlayerId];
     if (player && player.activeExpeditions) {
         const rect = ui.viewport.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;

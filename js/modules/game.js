@@ -1,24 +1,19 @@
-﻿console.log('[DEBUG] game.js loaded v=161');
+﻿console.log('[DEBUG] game.js loaded v=162');
 
-import * as C from './config.js?v=161';
-import { gameState, viewportState } from './state.js?v=161';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=161';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=161';
-import { gameLoop } from './renderer.js?v=161';
-import { runAIDecision } from './ai.js?v=161';
-import { Logger } from './logger.js?v=161';
+import * as C from './config.js?v=162';
+import { gameState, viewportState } from './state.js?v=162';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=162';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=162';
+import { gameLoop } from './renderer.js?v=162';
+import { runAIDecision } from './ai.js?v=162';
+import { Logger } from './logger.js?v=162';
 
 // --- MULTIPLAYER SYNC ---
 import { ref, push, set, onValue, onDisconnect, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { db } from '../firebase-config.js?v=161';
+import { db } from '../firebase-config.js?v=162';
 
-export const PLAYER_DEFINITIONS = {
-    'human': { name: "Hráč 1", color: '#03A9F4', baseColor: '#29B6F6', borderColor: '#81D4FA', type: 'human' },
-    'enemy': { name: "Hráč 2", color: '#b71c1c', baseColor: '#d32f2f', borderColor: '#ef5350', type: 'human' }
-};
-
-export async function initGame(hostStatus = false, playerId = 'human', lobbyId = null) {
-    console.log(`[GAME] Inicializace hry v=161 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
+export async function initGame(hostStatus = false, playerId = 'local_player', lobbyId = null, playersData = null) {
+    console.log(`[GAME] Inicializace hry v=162 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
 
     // Uložení parametrů do globálního stavu (DŮLEŽITÉ!)
     gameState.isHost = hostStatus;
@@ -37,23 +32,41 @@ export async function initGame(hostStatus = false, playerId = 'human', lobbyId =
 
     removeContextMenu();
 
-    // INICIALIZACE HRÁČŮ
+    // INICIALIZACE HRÁČŮ Z LOBBY DATA (ROZDÁVÁNÍ KARET)
     gameState.players = {};
-    for (const id in PLAYER_DEFINITIONS) {
-        gameState.players[id] = {
-            id: id,
-            ...PLAYER_DEFINITIONS[id],
-            gold: C.INITIAL_GOLD,
-            units: C.INITIAL_UNITS,
-            income: C.BASE_INCOME,
-            crystals: C.INITIAL_CRYSTALS,
-            activeExpeditions: [],
-            expeditionCounter: 0,
-            fractionalUnits: 0,
-        };
+
+    if (playersData) {
+        // Seřadit hráče konzistentně (například abecedně podle klíče = pořadí připojení do Firebase)
+        const playerIds = Object.keys(playersData).sort();
+
+        playerIds.forEach((id, index) => {
+            if (index >= C.MAX_PLAYERS) return; // Záchrana proti přeplnění mapy
+
+            const colorCard = C.PLAYER_COLORS[index];
+            const pData = playersData[id];
+
+            gameState.players[id] = {
+                id: id,
+                name: pData.name || `Hráč ${index + 1}`,
+                color: colorCard.color,
+                baseColor: colorCard.baseColor,
+                borderColor: colorCard.borderColor,
+                type: 'human', // Prozatím všichni reální lidé z lobby
+                index: index, // Pořadí slouží pro výpočet rohů základny
+
+                // Ekonomicé "karty"
+                gold: C.INITIAL_GOLD,
+                units: C.INITIAL_UNITS,
+                income: C.BASE_INCOME,
+                crystals: C.INITIAL_CRYSTALS,
+                activeExpeditions: [],
+                expeditionCounter: 0,
+                fractionalUnits: 0,
+            };
+        });
     }
 
-    console.log("[GAME] Hráči inicializováni (v161):", gameState.players);
+    console.log("[GAME] Hráči inicializováni (v162):", gameState.players);
 
     gameState.gameBoard = [];
     gameState.structures.clear();
@@ -162,14 +175,14 @@ async function syncWorldGeneration(resolve) {
 }
 
 function generateStructures() {
-    const humanBaseX = 50;
-    const humanBaseY = 50;
-    const enemyBaseX = C.GRID_SIZE - 50;
-    const enemyBaseY = C.GRID_SIZE - 50;
-
-    const baseSize = 6;
-    createStructure('base', humanBaseX, humanBaseY, baseSize, baseSize, { name: 'Hlavní stan' }, 'human');
-    createStructure('base', enemyBaseX, enemyBaseY, baseSize, baseSize, { name: 'Válečný tábor' }, 'enemy');
+    // Definovat Base pozice podle indexů hráčů (z konfigurace)
+    Object.values(gameState.players).forEach((p) => {
+        const basePos = C.BASE_POSITIONS[p.index];
+        if (basePos) {
+            const baseSize = 6;
+            createStructure('base', basePos.x, basePos.y, baseSize, baseSize, { name: 'Hlavní stan - ' + p.name }, p.id);
+        }
+    });
 
     // Náhodné struktury
     for (let i = 0; i < C.NUM_STRUCTURES; i++) {
@@ -183,39 +196,32 @@ function generateStructures() {
 }
 
 function finishInit(resolveCallback) {
-    const humanBaseX = 50;
-    const humanBaseY = 50;
-    const enemyBaseX = C.GRID_SIZE - 50;
-    const enemyBaseY = C.GRID_SIZE - 50;
-
     // MULTIPLAYER SYNC: Připojit se k odběru cizích expedic
     if (gameState.currentLobbyId) {
         setupMultiplayerSync();
     }
 
     // ÚVODNÍ ODHALENÍ MAPY (aby nebyla černá obrazovka!)
-    // Oběma hráčům odhalíme jejich základny lokálně
-    revealMapAround(humanBaseX, humanBaseY, 20, 'human');
-    revealMapAround(enemyBaseX, enemyBaseY, 20, 'enemy');
+    // Objevíme mapy všech aktivních hráčů okolo jejich základen, ale jen do jejich pohledu
+    Object.values(gameState.players).forEach((p) => {
+        const basePos = C.BASE_POSITIONS[p.index];
+        if (basePos) {
+            revealMapAround(basePos.x, basePos.y, 20, p.id);
+        }
+    });
 
-    // Pro jistotu ještě jednou explicitně pro sebe
-    if (gameState.myPlayerId === 'human') {
-        revealMapAround(humanBaseX, humanBaseY, 20, 'human');
-    } else {
-        revealMapAround(enemyBaseX, enemyBaseY, 20, 'enemy');
-    }
-
-    // Viewport
+    // Viewport: Zacílit kameru hráče na JEHO základnu
     viewportState.scale = 0.5;
     const vp = document.getElementById('game-viewport');
     if (vp) {
-        // Focus na vlastní základnu: Hostitel vlevo nahoře, Klient vpravo dole
-        const focusX = (gameState.myPlayerId === 'human') ? humanBaseX : enemyBaseX;
-        const focusY = (gameState.myPlayerId === 'human') ? humanBaseY : enemyBaseY;
+        const myIndex = gameState.players[gameState.myPlayerId]?.index || 0;
+        const basePos = C.BASE_POSITIONS[myIndex];
 
-        viewportState.gridPos.x = vp.clientWidth / 2 - (focusX * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
-        viewportState.gridPos.y = vp.clientHeight / 2 - (focusY * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
-        console.log(`[GAME] Kamera vycentrovaná na: [${focusX}, ${focusY}] pro ${gameState.myPlayerId}`);
+        if (basePos) {
+            viewportState.gridPos.x = vp.clientWidth / 2 - (basePos.x * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
+            viewportState.gridPos.y = vp.clientHeight / 2 - (basePos.y * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
+            console.log(`[GAME] Kamera vycentrovaná na: [${basePos.x}, ${basePos.y}] pro ${gameState.myPlayerId}`);
+        }
     }
 
     // attachEventListeners(initGame); // VOLÁ MAIN.JS kvuli závislostem
@@ -229,12 +235,13 @@ function finishInit(resolveCallback) {
     gameState.logicIntervals.push(setInterval(updateUI, 500));
 
     // Inicializujeme příjem, aby hráči začali správně
-    recalculatePlayerIncome('human');
-    recalculatePlayerIncome('enemy');
+    Object.keys(gameState.players).forEach(pId => {
+        recalculatePlayerIncome(pId);
+    });
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové Říši! Verze 161 aktivní. Hraješ jako ${gameState.myPlayerId === 'human' ? 'Modrý' : 'Červený'}.`, 'win');
+    logMessage(`Vítej v Pixelové Říši! Verze 162 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
@@ -568,7 +575,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = nu
 
     // MULTIPLAYER SYNC
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=161').then(m => {
+        import('../main.js?v=162').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -720,7 +727,7 @@ export function captureStructure(playerId, structId, isRemoteAction = false) {
 
     // MULTIPLAYER SYNC ACTIONS
     if (!isRemoteAction && gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=161').then(m => {
+        import('../main.js?v=162').then(m => {
             m.syncActionToFirebase({
                 type: 'capture',
                 playerId: playerId,

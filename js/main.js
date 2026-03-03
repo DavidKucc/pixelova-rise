@@ -3,21 +3,21 @@ if (window.MAIN_JS_INITIALIZED) {
     console.warn('[ABORT] main.js už jednou běží. Ruším druhou instanci.');
 } else {
     window.MAIN_JS_INITIALIZED = true;
-    console.log('[DEBUG] main.js loaded v=161');
+    console.log('[DEBUG] main.js loaded v=162');
 }
 
-import { db } from './firebase-config.js?v=161';
+import { db } from './firebase-config.js?v=162';
 import { ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { initGame } from './modules/game.js?v=161';
-import { attachEventListeners } from './modules/input.js?v=161';
+import { initGame } from './modules/game.js?v=162';
+import { attachEventListeners } from './modules/input.js?v=162';
 
-import { gameState } from './modules/state.js?v=161';
+import { gameState } from './modules/state.js?v=162';
 
 export let playerFirebaseRef = null;
 
 function updatePlayerIdentity() {
-    gameState.myPlayerId = gameState.isHost ? 'human' : 'enemy';
-    console.log(`[LOBBY] Moje ID hráče je: ${gameState.myPlayerId}`);
+    // Již nenastavujeme 'human' / 'enemy'. 
+    // myPlayerId se určí podle unikátního Firebase klíče v joinFirebaseLobby, nebo 'local_player' v lokále.
 }
 export let playerIsReady = false;
 
@@ -92,13 +92,16 @@ function joinFirebaseLobby(nickname) {
     // Přidat sebe do seznamu
     playerFirebaseRef = push(lobbyPlayersRef);
 
+    // Přiřadit si rovnou svůj vlastní klíč jako ID do hry
+    gameState.myPlayerId = playerFirebaseRef.key;
+    console.log(`[LOBBY] Moje unikátní ID hráče je: ${gameState.myPlayerId}`);
+
     // JSME HOST?
     // Pokud jsme ID lobby právě teď vygenerovali (viz řádek výše), jsme hostitel.
     if (!paramsReady) {
         gameState.isHost = true;
         console.log("[LOBBY] Jsi hostitelem této bitvy.");
     }
-    updatePlayerIdentity();
 
     onValue(lobbyPlayersRef, (snapshot) => {
         // Fallback: Pokud v lobby ještě nikdo není, jsme první = host
@@ -164,20 +167,36 @@ window.hostStartGame = function () {
 async function startGameLocally() {
     console.log("HRA STARTUJE!");
 
-    // Zobrazit Loading Screen
     window.showScreen('loading-screen');
 
+    // Místo prázdného booleanu potřebujeme seznam hráčů
+    let playersData = null;
+
+    if (gameState.currentLobbyId) {
+        // ONLINE HRA - Stáhneme si lidi z lobby
+        const playersRef = ref(db, `lobbies/${gameState.currentLobbyId}/players`);
+        await new Promise((resolve) => {
+            onValue(playersRef, (snapshot) => {
+                playersData = snapshot.val();
+                resolve();
+            }, { onlyOnce: true });
+        });
+    } else {
+        // LOKÁLNÍ HRA - Vytvoříme si falešná data pouze se sebou
+        const me = 'local_player';
+        gameState.myPlayerId = me;
+        gameState.isHost = true;
+        playersData = {
+            [me]: { name: "Lokální Hráč", ready: true }
+        };
+    }
+
     // Inicializace hry je nyní asynchronní
-    await initGame(gameState.isHost, gameState.myPlayerId, gameState.currentLobbyId);
+    await initGame(gameState.isHost, gameState.myPlayerId, gameState.currentLobbyId, playersData);
 
     // Jakmile je mapa na 100% načtena, odemkneme UI:
     window.showScreen('game-ui');
-    attachEventListeners(() => {
-        window.showScreen('loading-screen');
-        initGame(gameState.isHost, gameState.myPlayerId, gameState.currentLobbyId).then(() => {
-            window.showScreen('game-ui');
-        });
-    });
+    attachEventListeners();
 
     // Pojistka překreslení plátna po zobrazení divu
     setTimeout(() => {
@@ -262,8 +281,7 @@ document.getElementById('start-game-btn').addEventListener('click', () => {
 // Volba Lokální hry
 document.getElementById('local-mode-btn').addEventListener('click', () => {
     document.getElementById('mode-selection').style.display = 'none';
-    document.getElementById('game-ui').style.display = 'flex';
-    initGame(true, 'human', null); // Lokální hra: jsem hostitel, jsem 'human', žádný lobby
+    startGameLocally();
 });
 
 // Volba Online hry
@@ -301,7 +319,7 @@ document.getElementById('copy-lobby-btn').addEventListener('click', async () => 
 });
 
 window.onerror = function (msg, url, line) {
-    console.error(`ERROR v161: ${msg} at ${line}`);
+    console.error(`ERROR v162: ${msg} at ${line}`);
     return false;
 };
 // --- SYNCHRONIZAČNÍ EXPORTY ---

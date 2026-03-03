@@ -1,4 +1,4 @@
-﻿// js/modules/config.js v=161
+﻿// js/modules/config.js v=162
 // Všechny neměnné hodnoty, konstanty a statická data hry.
 
 export const GRID_SIZE = 400, INITIAL_GOLD = 500, INITIAL_UNITS = 20, INITIAL_CRYSTALS = 0;
@@ -10,6 +10,23 @@ export const UNIT_PIXEL_SIZE = 10; // Přesně velikost buňky CELL_SIZE
 export const UNIT_SPREAD = 20;     // Rozptyl pro "mrak" efekt
 
 export const MIN_SCALE = 0.2, MAX_SCALE = 2.5;
+
+// === MULTIPLAYER N-HRÁČŮ KLÍČE ===
+export const MAX_PLAYERS = 4;
+
+export const BASE_POSITIONS = [
+    { x: 50, y: 50 },                               // Hráč 1: Levý Horní
+    { x: Math.round(GRID_SIZE - 50), y: Math.round(GRID_SIZE - 50) }, // Hráč 2: Pravý Dolní
+    { x: Math.round(GRID_SIZE - 50), y: 50 },       // Hráč 3: Pravý Horní
+    { x: 50, y: Math.round(GRID_SIZE - 50) }        // Hráč 4: Levý Dolní
+];
+
+export const PLAYER_COLORS = [
+    { name: "Hráč 1", color: '#03A9F4', baseColor: '#29B6F6', borderColor: '#81D4FA' }, // Modrá
+    { name: "Hráč 2", color: '#b71c1c', baseColor: '#d32f2f', borderColor: '#ef5350' }, // Červená
+    { name: "Hráč 3", color: '#8e24aa', baseColor: '#ab47bc', borderColor: '#ce93d8' }, // Fialová
+    { name: "Hráč 4", color: '#fbc02d', baseColor: '#fdd835', borderColor: '#fff59d' }  // Žlutá
+];
 
 export const BUILDINGS = {
     barracks: { name: "Kasárny", cost: { gold: 150, crystals: 5 }, size: 3, upkeep: { gold: 2 } },

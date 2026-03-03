@@ -1,8 +1,8 @@
-﻿console.log('[DEBUG] renderer.js loaded v=161');
+﻿console.log('[DEBUG] renderer.js loaded v=162');
 
-import { ui } from './ui.js?v=161';
-import { gameState, viewportState } from './state.js?v=161';
-import * as C from './config.js?v=161';
+import { ui } from './ui.js?v=162';
+import { gameState, viewportState } from './state.js?v=162';
+import * as C from './config.js?v=162';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 export function gameLoop() {
@@ -136,20 +136,33 @@ function drawExpedition(ctx, curX, curY, units, color, isSelected) {
 
 function drawDustIndicators(ctx, x, y) {
     const RANGE = 20;
-    if (!gameState.players['enemy']?.activeExpeditions) return;
-    gameState.players['enemy'].activeExpeditions.forEach(enemy => {
-        const ex = enemy.startX + (enemy.targetX - enemy.startX) * enemy.progress;
-        const ey = enemy.startY + (enemy.targetY - enemy.startY) * enemy.progress;
-        const dist = Math.hypot(x - ex, y - ey);
-        const cell = gameState.gameBoard[Math.round(ey)]?.[Math.round(ex)];
-        if (dist < RANGE && !cell?.visibleTo.includes('human')) {
-            const angle = Math.atan2(ey - y, ex - x);
-            const radius = 30;
-            ctx.beginPath();
-            ctx.arc(x * (CELL_SIZE + GAP_SIZE), y * (CELL_SIZE + GAP_SIZE), radius, angle - 0.4, angle + 0.4);
-            ctx.strokeStyle = `rgba(255, 0, 0, ${1 - (dist / RANGE)})`;
-            ctx.lineWidth = 5;
-            ctx.stroke();
-        }
+
+    Object.keys(gameState.players).forEach(pId => {
+        if (pId === gameState.myPlayerId) return; // Nekreslit radar pro sebe
+
+        const enemyPlayer = gameState.players[pId];
+        if (!enemyPlayer.activeExpeditions) return;
+
+        enemyPlayer.activeExpeditions.forEach(enemy => {
+            const ex = enemy.startX + (enemy.targetX - enemy.startX) * enemy.progress;
+            const ey = enemy.startY + (enemy.targetY - enemy.startY) * enemy.progress;
+            const dist = Math.hypot(x - ex, y - ey);
+            const cell = gameState.gameBoard[Math.round(ey)]?.[Math.round(ex)];
+
+            // Kresli radar jen, dokud expedice není v našem jasném výhledu
+            if (dist < RANGE && !cell?.visibleTo.includes(gameState.myPlayerId)) {
+                const angle = Math.atan2(ey - y, ex - x);
+                const radius = 30;
+                ctx.beginPath();
+                ctx.arc(x * (CELL_SIZE + GAP_SIZE), y * (CELL_SIZE + GAP_SIZE), radius, angle - 0.4, angle + 0.4);
+                // Vykreslí prach v barvě nepřítele
+                const r = parseInt(enemyPlayer.color.slice(1, 3), 16);
+                const g = parseInt(enemyPlayer.color.slice(3, 5), 16);
+                const b = parseInt(enemyPlayer.color.slice(5, 7), 16);
+                ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${1 - (dist / RANGE)})`;
+                ctx.lineWidth = 5;
+                ctx.stroke();
+            }
+        });
     });
 }
