@@ -143,7 +143,13 @@ async function syncWorldGeneration(resolve) {
         finishInit(resolve);
     } else {
         console.log(`[WORLD] Klient (${gameState.myPlayerId}) čeká na data světa pro session ${gameState.sessionToken}...`);
-        const unsub = onValue(worldRef, (snapshot) => {
+
+        let unsubWORLD;
+        let isResolvedWORLD = false;
+
+        unsubWORLD = onValue(worldRef, (snapshot) => {
+            if (isResolvedWORLD) return;
+
             const data = snapshot.val();
             if (snapshot.exists() && data && data.terrainStr && data.structuresJSON) {
                 // Skutečně checkneme token, abychom nenatáhli starou mapu z minulé relace!
@@ -171,7 +177,9 @@ async function syncWorldGeneration(resolve) {
                         createStructure(s.type, s.x, s.y, s.w, s.h, s.data, s.ownerId, s.id);
                     });
 
-                    unsub();
+                    isResolvedWORLD = true;
+                    if (unsubWORLD) unsubWORLD();
+
                     finishInit(resolve); // Svět a budovy už máme stažené z Firebase, spouštíme klienta!
                 } else {
                     console.log("[WORLD] Ignoruji starý svět z minulé session...");
