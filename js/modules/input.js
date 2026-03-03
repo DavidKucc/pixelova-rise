@@ -325,7 +325,11 @@ export function attachEventListeners(initGame) {
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.context-menu')) removeContextMenu();
     });
-    ui.resetBtn.addEventListener('click', initGame);
+    ui.resetBtn.addEventListener('click', () => {
+        if (confirm('Opravdu chcete hru ukončit a vrátit se do hlavní nabídky?')) {
+            window.location.reload();
+        }
+    });
     const buyUnit = (count) => {
         const player = gameState.players[gameState.myPlayerId];
         if (!player) return;
