@@ -291,22 +291,31 @@ export function attachEventListeners(initGame) {
     ui.viewport.addEventListener('wheel', onWheel, { passive: false });
     ui.viewport.addEventListener('contextmenu', handleRightClick);
 
+    // Globální pojistka proti probublání kontextového menu z mousedown eventů
+    document.addEventListener('contextmenu', (e) => {
+        if (e.target.closest('#game-viewport') || e.target.closest('#game-canvas')) {
+            e.preventDefault();
+        }
+    });
+
     // Vlastní logika pro odchycení pravého dvojkliku, který prohlížeč nativně moc dobře nepodporuje
     let rightClickTimeout = null;
     let rightClickCount = 0;
 
     ui.viewport.addEventListener('mousedown', (e) => {
         if (e.button === 2) {
+            e.preventDefault(); // Zabraňuje výchozímu chování pro jistotu
             rightClickCount++;
             if (rightClickCount === 1) {
                 // První klik se zpracuje nativně přes contextmenu event, ale nastavíme si timeout na dvojklik
                 rightClickTimeout = setTimeout(() => {
                     rightClickCount = 0;
-                }, 300); // 300ms rozestup
+                }, 250); // 250ms rozestup na RTS dvojklik
             } else if (rightClickCount === 2) {
                 // Druhý klik v časovém limitu!
                 clearTimeout(rightClickTimeout);
                 rightClickCount = 0;
+                removeContextMenu(); // Uklidíme dialog z prvního kliku!
                 handleRightDoubleClick(e);
             }
         }

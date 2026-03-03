@@ -53,7 +53,11 @@ function drawBoard() {
             const owner = struct.ownerId ? gameState.players[struct.ownerId] : null;
             ctx.fillStyle = owner ? owner.baseColor : '#78909C';
 
-            ctx.fillRect(structScreenX, structScreenY, struct.w * fullCellSize - GAP_SIZE, struct.h * fullCellSize - GAP_SIZE);
+            // Abychom se vyvarovali asymetrickým překryvům, šířka a výška budov zaplňuje včetně gapů
+            const drawW = struct.w * fullCellSize - GAP_SIZE;
+            const drawH = struct.h * fullCellSize - GAP_SIZE;
+
+            ctx.fillRect(structScreenX, structScreenY, drawW, drawH);
 
             // Ikona
             ctx.fillStyle = '#fff';
