@@ -128,8 +128,8 @@ function drawExpedition(ctx, curX, curY, units, color, isSelected) {
     ];
     const count = Math.min(Math.ceil(units / 2), offsets.length);
     for (let i = 0; i < count; i++) {
-        const ox = Math.round(curX + offsets[i].x) * fullCellSize;
-        const oy = Math.round(curY + offsets[i].y) * fullCellSize;
+        const ox = (curX + offsets[i].x) * fullCellSize;
+        const oy = (curY + offsets[i].y) * fullCellSize;
         ctx.fillRect(ox, oy, CELL_SIZE, CELL_SIZE);
         if (isSelected) ctx.strokeRect(ox, oy, CELL_SIZE, CELL_SIZE);
     }

@@ -29,6 +29,12 @@ export const PLAYER_COLORS = [
 ];
 
 export const BUILDINGS = {
+    base: { name: "Hlavní Základna", cost: { gold: 0 }, size: 2, income: 10 },
+    village: { name: "Vesnice", cost: { gold: 100 }, size: 1, income: 2, unit_bonus: 5 },
+    mine: { name: "Důl na Zlato", cost: { gold: 200 }, size: 1, income: 15 },
+    crystal_mine: { name: "Krystalový Důl", cost: { gold: 300 }, size: 1, income: 0 },
+    ancient_library: { name: "Prastará Knihovna", cost: { gold: 0 }, size: 1, reveal_radius: 15 },
+    trading_post: { name: "Obchodní Stanice", cost: { gold: 150 }, size: 1, income: 8 },
     barracks: { name: "Kasárny", cost: { gold: 150, crystals: 5 }, size: 3, upkeep: { gold: 2 } },
     watchtower: { name: "Strážní věž", cost: { gold: 100, crystals: 0 }, size: 2, effect: { attrition_reduction: 0.5, radius: 10 } }
 };

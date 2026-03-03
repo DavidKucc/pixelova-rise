@@ -556,9 +556,9 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = nu
             finalSourceX = base.x + Math.floor(base.w / 2);
             finalSourceY = base.y + Math.floor(base.h / 2);
         } else {
-            // Bezpečnostní pojistka, pokud by base z nějakého důvodu neexistovala
-            finalSourceX = playerId === 'human' ? 50 : Math.round(C.GRID_SIZE - 50);
-            finalSourceY = playerId === 'human' ? 50 : Math.round(C.GRID_SIZE - 50);
+            console.error(`[CRITICAL] Hráč ${playerId} nemá na mapě žádnou základnu! Jednotky nevyslány.`);
+            logMessage("Nemůžeš vyslat jednotky, tvoje základna byla zničena nebo chybí!", 'error');
+            return;
         }
     }
 
