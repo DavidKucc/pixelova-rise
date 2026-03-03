@@ -37,24 +37,34 @@ window.addEventListener('keyup', (e) => {
     if (e.code === 'KeyQ') isQPressed = false;
 });
 
+let lastLeftClickTime = 0;
+let isPanning = false;
+
 function onMouseDown(e) {
     const rect = ui.viewport.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    if (e.button === 0) { // Levá myš -> Výběr
-        gameState.selectionBox.active = true;
-        gameState.selectionBox.startX = mouseX;
-        gameState.selectionBox.startY = mouseY;
-        gameState.selectionBox.endX = mouseX;
-        gameState.selectionBox.endY = mouseY;
-        viewportState.didDrag = false;
-    } else if (e.button === 1) { // PROSTŘEDNÍ tlačítko (Kolečko) -> Panování (Tažení kamery)
-        e.preventDefault(); // Zabrání výchozímu auto-scrollu v prohlížeči
-        viewportState.isDragging = true;
-        viewportState.didDrag = false;
-        viewportState.startPos.x = e.clientX - viewportState.gridPos.x;
-        viewportState.startPos.y = e.clientY - viewportState.gridPos.y;
+    if (e.button === 0) { // Levá myš -> Rozhodování mezi Tažením kamery (Pan) a Box Selectem
+        const now = Date.now();
+        const isDoubleClick = (now - lastLeftClickTime) < 300;
+        lastLeftClickTime = now;
+
+        if (isDoubleClick) {
+            // Dvojklik & držení: Výběrový box
+            gameState.selectionBox.active = true;
+            gameState.selectionBox.startX = mouseX;
+            gameState.selectionBox.startY = mouseY;
+            gameState.selectionBox.endX = mouseX;
+            gameState.selectionBox.endY = mouseY;
+            viewportState.didDrag = false;
+        } else {
+            // Jeden klik & držení: Pohyb mapou (Pan)
+            isPanning = true;
+            viewportState.didDrag = false;
+            viewportState.startPos.x = e.clientX - viewportState.gridPos.x;
+            viewportState.startPos.y = e.clientY - viewportState.gridPos.y;
+        }
     }
 }
 
@@ -67,15 +77,15 @@ function onMouseMove(e) {
     viewportState.lastMouseGridCoords = getGridCoordsFromEvent(e);
 
     if (gameState.selectionBox.active) {
-        // Logika pro box select (LMB)
+        // Logika pro box select (LMB - DoubleClick Hold)
         gameState.selectionBox.endX = mouseX;
         gameState.selectionBox.endY = mouseY;
         if (!viewportState.didDrag && Math.hypot(mouseX - gameState.selectionBox.startX, mouseY - gameState.selectionBox.startY) > 5) {
             viewportState.didDrag = true;
         }
         gameState.needsRedraw = true;
-    } else if (viewportState.isDragging) {
-        // Logika pro panování (MMB - Tažení kamery)
+    } else if (isPanning) {
+        // Logika pro panování (LMB Single Hold - Tažení kamery)
         if (!viewportState.didDrag && Math.hypot(e.clientX - (viewportState.startPos.x + viewportState.gridPos.x), e.clientY - (viewportState.startPos.y + viewportState.gridPos.y)) > 5) {
             viewportState.didDrag = true;
             removeContextMenu();
@@ -89,27 +99,31 @@ function onMouseMove(e) {
 }
 
 function onMouseUp(e) {
-    // Musíme vědět, které tlačítko se pustilo
-    if (e.button === 0 && gameState.selectionBox.active) {
-        if (viewportState.didDrag) {
-            performBoxSelection();
-        } else {
-            // Pouhý klik = vyčistit výběr, nebo vybrat pokud je tam expedice
-            if (!e.shiftKey) { // Zmáčknutí Shiftu by mohlo do budoucna přidávat
-                gameState.selectedExpeditionIds = [];
-                gameState.selectedStructureId = null;
+    if (e.button === 0) {
+        if (gameState.selectionBox.active) {
+            // Ukončen výběrový box
+            if (viewportState.didDrag) {
+                performBoxSelection();
             }
-            onGridClick(e);
+            gameState.selectionBox.active = false;
+        } else if (isPanning) {
+            // Ukončen pan
+            if (!viewportState.didDrag) {
+                // Nebylo to tažení, takže to byl normální single-click!
+                if (!e.shiftKey) {
+                    gameState.selectedExpeditionIds = [];
+                    gameState.selectedStructureId = null;
+                }
+                onGridClick(e);
+            }
+            isPanning = false;
         }
-        gameState.selectionBox.active = false;
-    } else if (e.button === 1) { // Kolečko myši upuštěno
-        viewportState.isDragging = false;
     }
 
-    // Pojistka pro případ, že se ztratí focus nebo dojde k chybě
+    // Pojistka pro případ ztráty focusu
     if (e.buttons === 0) {
         gameState.selectionBox.active = false;
-        viewportState.isDragging = false;
+        isPanning = false;
     }
 
     gameState.needsRedraw = true;
@@ -215,45 +229,10 @@ function onGridClick(e) {
     handleCellClick(cell);
 }
 
-function onDoubleClick(e) {
-    const coords = getGridCoordsFromEvent(e);
-    if (!coords || !gameState.gameBoard[coords.y]) return;
-
-    const cell = gameState.gameBoard[coords.y][coords.x];
-    const struct = cell.structureId ? gameState.structures.get(cell.structureId) : null;
-
-    // 1. Double click na budovu -> obsadit (pokud je cizí)
-    if (cell.visibleTo.includes(gameState.myPlayerId) && struct && struct.ownerId !== gameState.myPlayerId) {
-        captureStructure(gameState.myPlayerId, struct.id);
-        return;
-    }
-
-    // 2. Double click na jednotku -> vybrat VŠECHNY viditelné expedice hráče
-    const player = gameState.players[gameState.myPlayerId];
-    if (player && player.activeExpeditions) {
-        const rect = ui.viewport.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        // Kontrola, zda je u kurzoru nějaká expedice
-        const hit = player.activeExpeditions.some(exp => {
-            const curX = Math.round(exp.startX + (exp.targetX - exp.startX) * exp.progress);
-            const curY = Math.round(exp.startY + (exp.targetY - exp.startY) * exp.progress);
-            const screenX = curX * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale + viewportState.gridPos.x;
-            const screenY = curY * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale + viewportState.gridPos.y;
-            const margin = 3 * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale; // Trochu větší tolerance pro dvojklik
-
-            return Math.abs(mouseX - screenX) < margin && Math.abs(mouseY - screenY) < margin;
-        });
-
-        if (hit) {
-            gameState.selectedExpeditionIds = player.activeExpeditions.map(exp => exp.id);
-            gameState.selectedStructureId = null;
-            console.log(`[INPUT] Dvojklik na jednotku: Vybrány všechny (${gameState.selectedExpeditionIds.length}) expedice.`);
-            gameState.needsRedraw = true;
-        }
-    }
-}
+// Odstranění nativního dvojkliku z canvasu (byl přesunut na 2x pravý a 2x levý)
+ui.viewport.addEventListener('click', (e) => {
+    // Ošetřeno z onMouseUp (normální klik), není potřeba nativní listener 
+});
 
 function handleRightClick(e) {
     e.preventDefault();

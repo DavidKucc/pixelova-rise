@@ -94,8 +94,22 @@ function drawBoard() {
             oPlayer.activeExpeditions.forEach(exp => {
                 const curX = exp.startX + (exp.targetX - exp.startX) * exp.progress;
                 const curY = exp.startY + (exp.targetY - exp.startY) * exp.progress;
-                const cell = gameState.gameBoard[Math.round(curY)]?.[Math.round(curX)];
-                if (cell?.visibleTo.includes(gameState.myPlayerId)) {
+                const cY = Math.round(curY);
+                const cX = Math.round(curX);
+
+                // Kontrola širšího okolí (cca 5x5), protože render mraku zabírá také místo
+                let isVisible = false;
+                for (let dy = -2; dy <= 2; dy++) {
+                    for (let dx = -2; dx <= 2; dx++) {
+                        if (gameState.gameBoard[cY + dy]?.[cX + dx]?.visibleTo.includes(gameState.myPlayerId)) {
+                            isVisible = true;
+                            break;
+                        }
+                    }
+                    if (isVisible) break;
+                }
+
+                if (isVisible) {
                     drawExpedition(ctx, curX, curY, exp.unitsLeft, oPlayer.color, false);
                 }
             });
@@ -148,10 +162,22 @@ function drawDustIndicators(ctx, x, y) {
             const ex = enemy.startX + (enemy.targetX - enemy.startX) * enemy.progress;
             const ey = enemy.startY + (enemy.targetY - enemy.startY) * enemy.progress;
             const dist = Math.hypot(x - ex, y - ey);
-            const cell = gameState.gameBoard[Math.round(ey)]?.[Math.round(ex)];
 
-            // Kresli radar jen, dokud expedice není v našem jasném výhledu
-            if (dist < RANGE && !cell?.visibleTo.includes(gameState.myPlayerId)) {
+            const eX = Math.round(ex);
+            const eY = Math.round(ey);
+            let isVisible = false;
+            for (let dy = -2; dy <= 2; dy++) {
+                for (let dx = -2; dx <= 2; dx++) {
+                    if (gameState.gameBoard[eY + dy]?.[eX + dx]?.visibleTo.includes(gameState.myPlayerId)) {
+                        isVisible = true;
+                        break;
+                    }
+                }
+                if (isVisible) break;
+            }
+
+            // Kresli radar jen, dokud expedice není zasažena mým rozhledem a je blízko
+            if (dist < RANGE && !isVisible) {
                 const angle = Math.atan2(ey - y, ex - x);
                 const radius = 30;
                 ctx.beginPath();
