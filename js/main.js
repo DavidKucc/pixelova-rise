@@ -1,19 +1,11 @@
-// js/main.js
-if (window.MAIN_JS_INITIALIZED) {
-    console.warn('[ABORT] main.js už jednou běží. Ruším druhou instanci.');
-} else {
-    window.MAIN_JS_INITIALIZED = true;
-    console.log('[DEBUG] main.js loaded v=163');
-}
-
-import { db } from './firebase-config.js?v=167';
+import { db } from './firebase-config.js?v=168';
 import { ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { initGame } from './modules/game.js?v=167';
-import { attachEventListeners } from './modules/input.js?v=167';
+import { initGame } from './modules/game.js?v=168';
+import { attachEventListeners } from './modules/input.js?v=168';
 
 window.attachEventListeners = attachEventListeners;
 
-import { gameState } from './modules/state.js?v=167';
+import { gameState } from './modules/state.js?v=168';
 
 export let playerFirebaseRef = null;
 
@@ -194,10 +186,22 @@ async function startGameLocally() {
         // ONLINE HRA - Stáhneme si lidi z lobby
         const playersRef = ref(db, `lobbies/${gameState.currentLobbyId}/players`);
         await new Promise((resolve) => {
-            onValue(playersRef, (snapshot) => {
+            const unsub = onValue(playersRef, (snapshot) => {
+                if (!snapshot.exists() || !snapshot.val()) {
+                    console.log("[LOBBY] Čekám na Firebase sync hráčů (přišel prázdný v první milisekundě)...");
+                    return; // Ignorujeme nulák a čekáme dál!
+                }
+
                 playersData = snapshot.val();
+
+                // Ujištění, že naše ID je to absolutně nejnovější z Firebase Node
+                if (playerFirebaseRef && playerFirebaseRef.key) {
+                    gameState.myPlayerId = playerFirebaseRef.key;
+                }
+
+                unsub(); // Splněno, odepsat posluchač
                 resolve();
-            }, { onlyOnce: true });
+            });
         });
     } else {
         // LOKÁLNÍ HRA - Vytvoříme si falešná data pouze se sebou
