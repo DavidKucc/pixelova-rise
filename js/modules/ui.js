@@ -1,10 +1,10 @@
 // js/modules/ui.js
 // Zodpovídá za veškerou interakci s DOM elementy (vše mimo Canvas).
 
-console.log('[DEBUG] ui.js loaded v=174');
+console.log('[DEBUG] ui.js loaded v=175');
 
-import * as C from './config.js?v=174';
-import { gameState } from './state.js?v=174';
+import * as C from './config.js?v=175';
+import { gameState } from './state.js?v=175';
 
 function getEl(id) {
     const el = document.getElementById(id);

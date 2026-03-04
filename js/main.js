@@ -1,11 +1,11 @@
-import { db } from './firebase-config.js?v=174';
+import { db } from './firebase-config.js?v=175';
 import { ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { initGame } from './modules/game.js?v=174';
-import { attachEventListeners } from './modules/input.js?v=174';
+import { initGame } from './modules/game.js?v=175';
+import { attachEventListeners } from './modules/input.js?v=175';
 
 window.attachEventListeners = attachEventListeners;
 
-import { gameState } from './modules/state.js?v=174';
+import { gameState } from './modules/state.js?v=175';
 
 export let playerFirebaseRef = null;
 
@@ -18,6 +18,15 @@ export let playerIsReady = false;
 // Funkce pro detekci parametrů v URL při načtení
 // Spustit kontrolu URL při startu
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("[INIT] main.js (v175) - Čistím URL a připravuji hru.");
+
+    // ČIŠTĚNÍ URL PRO RELOAD (Vždy na hlavní menu po F5)
+    if (window.location.search.includes('lobby=')) {
+        const url = new URL(window.location);
+        url.search = '';
+        window.history.replaceState({}, '', url);
+    }
+
     checkUrlParams();
 });
 

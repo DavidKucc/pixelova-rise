@@ -1,11 +1,12 @@
 // js/modules/input.js
 // Zpracování vstupů od uživatele (myš, zoom, kliknutí).
-console.log('[INPUT] input.js loaded v=174');
+console.log('[INPUT] input.js loaded v=175');
 
-import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=174';
-import { viewportState, gameState } from './state.js?v=174';
-import * as C from './config.js?v=174';
-import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition } from './game.js?v=174';
+import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=175';
+import { viewportState, gameState } from './state.js?v=175';
+import * as C from './config.js?v=175';
+import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition } from './game.js?v=175';
+import { updateUI } from './ui.js?v=175';
 
 // Stav klávesy Q
 let isQPressed = false;
@@ -45,21 +46,33 @@ function onMouseDown(e) {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    if (e.button === 0) { // Levá myš -> Rozhodování mezi Tažením kamery (Pan) a Box Selectem
+    if (e.button === 0) { // Levá myš -> Rozhodování mezi Tažením kamery (Pan), Box Selectem a Dvojklikem
         const now = Date.now();
         const isDoubleClick = (now - lastLeftClickTime) < 300;
         lastLeftClickTime = now;
 
         if (isDoubleClick) {
-            // Dvojklik & dr�en�: V�b�rov� box
-            gameState.selectionBox.active = true;
-            gameState.selectionBox.startX = mouseX;
-            gameState.selectionBox.startY = mouseY;
-            gameState.selectionBox.endX = mouseX;
-            gameState.selectionBox.endY = mouseY;
-            viewportState.didDrag = false;
+            const coords = getGridCoordsFromEvent(e);
+            const cell = coords ? gameState.gameBoard[coords.y]?.[coords.x] : null;
+            const struct = cell?.structureId ? gameState.structures.get(cell.structureId) : null;
+
+            if (struct && struct.ownerId !== gameState.myPlayerId) {
+                // LEVÝ DVOJKLIK: Okamžité obsazení/nákup budovy!
+                captureStructure(gameState.myPlayerId, struct.id);
+                gameState.selectionBox.active = false;
+                isPanning = false;
+                viewportState.didDrag = false;
+            } else {
+                // Dvojklik & držení: Výběrový box (pokud neklikám na nepřátelskou budovu)
+                gameState.selectionBox.active = true;
+                gameState.selectionBox.startX = mouseX;
+                gameState.selectionBox.startY = mouseY;
+                gameState.selectionBox.endX = mouseX;
+                gameState.selectionBox.endY = mouseY;
+                viewportState.didDrag = false;
+            }
         } else {
-            // Jeden klik & dr�en�: Pohyb mapou (Pan)
+            // Jeden klik & držení: Pohyb mapou (Pan)
             isPanning = true;
             viewportState.didDrag = false;
             viewportState.startPos.x = e.clientX - viewportState.gridPos.x;

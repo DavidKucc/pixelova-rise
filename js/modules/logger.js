@@ -1,6 +1,6 @@
 // js/modules/logger.js
 // Rozšířený logovací systém pro lepší debugging.
-console.log('[DEBUG] logger.js loaded v=174');
+console.log('[DEBUG] logger.js loaded v=175');
 
 const LOG_PREFIX = '[GAME]';
 

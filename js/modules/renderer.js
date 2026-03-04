@@ -1,8 +1,8 @@
-console.log('[DEBUG] renderer.js loaded v=174');
+console.log('[DEBUG] renderer.js loaded v=175');
 
-import { ui } from './ui.js?v=174';
-import { gameState, viewportState } from './state.js?v=174';
-import * as C from './config.js?v=174';
+import { ui } from './ui.js?v=175';
+import { gameState, viewportState } from './state.js?v=175';
+import * as C from './config.js?v=175';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 export function gameLoop() {
@@ -120,7 +120,10 @@ function drawBoard() {
         }
     });
 
-    // 4. V�B�ROV� BOX
+    // 4. VYKRESLENÍ DĚLNÍKŮ (v175)
+    drawWorkers(ctx);
+
+    // 5. VÝBĚROVÝ BOX
     if (gameState.selectionBox?.active && viewportState.didDrag) {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.strokeStyle = 'rgba(3, 169, 244, 0.8)';
@@ -132,6 +135,42 @@ function drawBoard() {
     }
 
     ctx.restore();
+}
+
+function drawWorkers(ctx) {
+    if (!gameState.workers) return;
+    const fullCellSize = CELL_SIZE + GAP_SIZE;
+    const time = performance.now() / 1000;
+
+    gameState.workers.forEach(w => {
+        const curX = w.startX + (w.targetX - w.startX) * w.progress;
+        const curY = w.startY + (w.targetY - w.startY) * w.progress;
+
+        const screenX = curX * fullCellSize;
+        const screenY = curY * fullCellSize;
+        const size = CELL_SIZE * C.WORKER_SIZE_RATIO;
+
+        const owner = gameState.players[w.ownerId];
+        if (!owner) return;
+
+        // Vykreslit pozadí dělníka (barva hráče)
+        ctx.fillStyle = owner.color;
+        ctx.fillRect(screenX + (CELL_SIZE - size) / 2, screenY + (CELL_SIZE - size) / 2, size, size);
+
+        // Pulzující efekt (pouze pokud nese náklad)
+        if (!w.isReturning) {
+            const pulse = 0.5 + 0.5 * Math.sin(time * 10 + w.pulseOffset);
+            ctx.fillStyle = w.type === 'gold' ? C.WORKER_PULSE_COLOR_GOLD : C.WORKER_PULSE_COLOR_CRYSTAL;
+            ctx.globalAlpha = pulse;
+            ctx.fillRect(screenX + (CELL_SIZE - size) / 2, screenY + (CELL_SIZE - size) / 2, size, size);
+            ctx.globalAlpha = 1.0;
+        }
+
+        // Malý okraj
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 0.5 / viewportState.scale;
+        ctx.strokeRect(screenX + (CELL_SIZE - size) / 2, screenY + (CELL_SIZE - size) / 2, size, size);
+    });
 }
 
 function drawExpedition(ctx, curX, curY, units, color, isSelected) {

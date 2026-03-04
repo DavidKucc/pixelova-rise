@@ -1,5 +1,5 @@
 // js/modules/state.js
-console.log('[DEBUG] state.js loaded v=174');
+console.log('[DEBUG] state.js loaded v=175');
 // Exportuje objekty, které drží veškerý měnitelný stav hry.
 
 export const gameState = {
@@ -14,6 +14,7 @@ export const gameState = {
 
     // Tyto proměnné jsou skutečně globální pro hru, zůstávají
     structures: new Map(),
+    workers: [], // Seznam aktivních dělníků (vizuální efekt)
     selectedStructureId: null,
     selectedExpeditionIds: [], // Seznam ID vybraných expedic
     selectionBox: { startX: 0, startY: 0, endX: 0, endY: 0, active: false },

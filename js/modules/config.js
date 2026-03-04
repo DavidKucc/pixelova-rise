@@ -34,10 +34,18 @@ export const BUILDINGS = {
     mine: { name: "Důl na Zlato", cost: { gold: 200 }, size: 1, income: 15 },
     crystal_mine: { name: "Krystalový Důl", cost: { gold: 300 }, size: 1, income: 0 },
     ancient_library: { name: "Prastará Knihovna", cost: { gold: 0 }, size: 1, reveal_radius: 15 },
-    trading_post: { name: "Obchodní Stanice", cost: { gold: 150 }, size: 1, income: 8 },
+    trading_post: { name: 'Tržiště', cost: { gold: 150 }, size: 3 },
     barracks: { name: "Kasárny", cost: { gold: 150, crystals: 5 }, size: 3, upkeep: { gold: 2 } },
     watchtower: { name: "Strážní věž", cost: { gold: 100, crystals: 0 }, size: 2, effect: { attrition_reduction: 0.5, radius: 10 } }
 };
+
+// --- DĚLNÍCI (WORKERS) KONFIGURACE ---
+export const WORKER_SPEED = 2.0; // Rychlost dělníků (buňky za sekundu)
+export const WORKER_SIZE_RATIO = 0.5; // Velikost dělníka (násobek CELL_SIZE)
+export const WORKER_PULSE_SPEED = 0.15; // Rychlost pulzování barvy
+export const WORKER_PROXIMITY_RADIUS = 2.5; // Vzdálenost pro aktivaci dolu (v buňkách)
+export const WORKER_PULSE_COLOR_GOLD = 'rgba(255, 215, 0, 0.8)'; // Žlutá pro zlato
+export const WORKER_PULSE_COLOR_CRYSTAL = 'rgba(0, 191, 255, 0.8)'; // Modrá pro krystaly
 
 export const CELL_COLORS = {
     'hidden': '#111',
