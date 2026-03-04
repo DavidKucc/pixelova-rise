@@ -1,11 +1,11 @@
-import { db } from './firebase-config.js?v=175';
+import { db } from './firebase-config.js?v=176';
 import { ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { initGame } from './modules/game.js?v=175';
-import { attachEventListeners } from './modules/input.js?v=175';
+import { initGame } from './modules/game.js?v=176';
+import { attachEventListeners } from './modules/input.js?v=176';
 
 window.attachEventListeners = attachEventListeners;
 
-import { gameState } from './modules/state.js?v=175';
+import { gameState } from './modules/state.js?v=176';
 
 export let playerFirebaseRef = null;
 
@@ -18,13 +18,19 @@ export let playerIsReady = false;
 // Funkce pro detekci parametrů v URL při načtení
 // Spustit kontrolu URL při startu
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("[INIT] main.js (v175) - Čistím URL a připravuji hru.");
+    console.log("[INIT] main.js (v176) - Připravuji hru.");
 
-    // ČIŠTĚNÍ URL PRO RELOAD (Vždy na hlavní menu po F5)
-    if (window.location.search.includes('lobby=')) {
+    // INTELIGENTNÍ RESTART (v176)
+    // Pokud byl v minulé relaci (před F5) spuštěná hra, chceme zpět do menu a čisté URL.
+    // Pokud ale přicházíme přes pozvánku a hra ještě neběžela, URL necháme na pokoji.
+    const wasPlaying = sessionStorage.getItem('pixel_game_active');
+
+    if (wasPlaying && window.location.search.includes('lobby=')) {
+        console.log("[INIT] Detekován F5 během hry - vracím do hlavního menu.");
         const url = new URL(window.location);
         url.search = '';
         window.history.replaceState({}, '', url);
+        sessionStorage.removeItem('pixel_game_active');
     }
 
     checkUrlParams();
@@ -247,6 +253,9 @@ async function startGameLocally() {
 
     // Inicializace hry je nyní asynchronní
     await initGame(gameState.isHost, gameState.myPlayerId, gameState.currentLobbyId, playersData);
+
+    // Označíme, že hra aktivně běží (pro budoucí F5 restart)
+    sessionStorage.setItem('pixel_game_active', 'true');
 
     // Vynutit vykreslení ihned, co se ukáže panel
     if (gameState) gameState.needsRedraw = true;
