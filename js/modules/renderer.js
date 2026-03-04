@@ -1,8 +1,8 @@
 console.log('[DEBUG] renderer.js loaded v=163');
 
-import { ui } from './ui.js?v=169';
-import { gameState, viewportState } from './state.js?v=169';
-import * as C from './config.js?v=169';
+import { ui } from './ui.js?v=170';
+import { gameState, viewportState } from './state.js?v=170';
+import * as C from './config.js?v=170';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 export function gameLoop() {
@@ -26,12 +26,12 @@ function drawBoard() {
 
     const fullCellSize = CELL_SIZE + GAP_SIZE;
 
-    // 1. VYKRESLENÍ TERÉNU A FOG OF WAR
+    // 1. VYKRESLENï¿½ TERï¿½NU A FOG OF WAR
     for (let y = 0; y < GRID_SIZE; y++) {
         for (let x = 0; x < GRID_SIZE; x++) {
             const cell = gameState.gameBoard[y][x];
 
-            // OPTIMALIZACE: Pokud není buòka vidìt, kreslíme èerno
+            // OPTIMALIZACE: Pokud nenï¿½ buï¿½ka vidï¿½t, kreslï¿½me ï¿½erno
             let visible = cell.visibleTo.includes(gameState.myPlayerId);
             let finalColor = visible ? (CELL_COLORS[cell.terrain] || CELL_COLORS['none'] || '#3d9440') : CELL_COLORS['hidden'];
 
@@ -40,7 +40,7 @@ function drawBoard() {
         }
     }
 
-    // 2. VYKRESLENÍ BUDOV
+    // 2. VYKRESLENï¿½ BUDOV
     gameState.structures.forEach(struct => {
         const structCell = gameState.gameBoard[struct.y][struct.x];
         const isVisible = structCell.visibleTo.includes(gameState.myPlayerId);
@@ -49,11 +49,11 @@ function drawBoard() {
             const structScreenX = struct.x * fullCellSize;
             const structScreenY = struct.y * fullCellSize;
 
-            // Pokud je budova objevená, ale nikdo ji nevlastní, dáme jí "neutrální" barvu budovy
+            // Pokud je budova objevenï¿½, ale nikdo ji nevlastnï¿½, dï¿½me jï¿½ "neutrï¿½lnï¿½" barvu budovy
             const owner = struct.ownerId ? gameState.players[struct.ownerId] : null;
             ctx.fillStyle = owner ? owner.baseColor : '#78909C';
 
-            // Abychom se vyvarovali asymetrickým pøekryvùm, šíøka a výška budov zaplòuje vèetnì gapù
+            // Abychom se vyvarovali asymetrickï¿½m pï¿½ekryvï¿½m, ï¿½ï¿½ï¿½ka a vï¿½ï¿½ka budov zaplï¿½uje vï¿½etnï¿½ gapï¿½
             const drawW = struct.w * fullCellSize - GAP_SIZE;
             const drawH = struct.h * fullCellSize - GAP_SIZE;
 
@@ -78,7 +78,7 @@ function drawBoard() {
         }
     });
 
-    // 3. VYKRESLENÍ EXPEDIC
+    // 3. VYKRESLENï¿½ EXPEDIC
     // Moje expedice
     if (gameState.players[gameState.myPlayerId]?.activeExpeditions) {
         gameState.players[gameState.myPlayerId].activeExpeditions.forEach(exp => {
@@ -90,7 +90,7 @@ function drawBoard() {
         });
     }
 
-    // Ostatní expedice (jen v dohledu)
+    // Ostatnï¿½ expedice (jen v dohledu)
     Object.keys(gameState.players).forEach(pId => {
         if (pId === gameState.myPlayerId) return;
         const oPlayer = gameState.players[pId];
@@ -101,7 +101,7 @@ function drawBoard() {
                 const cY = Math.round(curY);
                 const cX = Math.round(curX);
 
-                // Kontrola širšího okolí (cca 5x5), protože render mraku zabírá také místo
+                // Kontrola ï¿½irï¿½ï¿½ho okolï¿½ (cca 5x5), protoï¿½e render mraku zabï¿½rï¿½ takï¿½ mï¿½sto
                 let isVisible = false;
                 for (let dy = -2; dy <= 2; dy++) {
                     for (let dx = -2; dx <= 2; dx++) {
@@ -120,7 +120,7 @@ function drawBoard() {
         }
     });
 
-    // 4. VÝBÌROVÝ BOX
+    // 4. Vï¿½Bï¿½ROVï¿½ BOX
     if (gameState.selectionBox?.active && viewportState.didDrag) {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.strokeStyle = 'rgba(3, 169, 244, 0.8)';
@@ -180,13 +180,13 @@ function drawDustIndicators(ctx, x, y) {
                 if (isVisible) break;
             }
 
-            // Kresli radar jen, dokud expedice není zasažena mým rozhledem a je blízko
+            // Kresli radar jen, dokud expedice nenï¿½ zasaï¿½ena mï¿½m rozhledem a je blï¿½zko
             if (dist < RANGE && !isVisible) {
                 const angle = Math.atan2(ey - y, ex - x);
                 const radius = 30;
                 ctx.beginPath();
                 ctx.arc(x * (CELL_SIZE + GAP_SIZE), y * (CELL_SIZE + GAP_SIZE), radius, angle - 0.4, angle + 0.4);
-                // Vykreslí prach v barvì nepøítele
+                // Vykreslï¿½ prach v barvï¿½ nepï¿½ï¿½tele
                 const r = parseInt(enemyPlayer.color.slice(1, 3), 16);
                 const g = parseInt(enemyPlayer.color.slice(3, 5), 16);
                 const b = parseInt(enemyPlayer.color.slice(5, 7), 16);

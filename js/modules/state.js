@@ -1,4 +1,4 @@
-﻿// js/modules/state.js
+// js/modules/state.js
 console.log('[DEBUG] state.js loaded v=163');
 // Exportuje objekty, které drží veškerý měnitelný stav hry.
 

@@ -1,43 +1,43 @@
 console.log('[AI] ai.js loaded v=163');
 
-import { gameState } from './state.js?v=169';
-import { launchExpedition, buildStructure, captureStructure } from './game.js?v=169';
-import * as C from './config.js?v=169';
-import { isAreaClear } from './utils.js?v=169';
+import { gameState } from './state.js?v=170';
+import { launchExpedition, buildStructure, captureStructure } from './game.js?v=170';
+import * as C from './config.js?v=170';
+import { isAreaClear } from './utils.js?v=170';
 
-// Hlavní rozhodovací funkce pro AI
+// Hlavnï¿½ rozhodovacï¿½ funkce pro AI
 export function runAIDecision(playerId) {
     const aiPlayer = gameState.players[playerId];
     if (!aiPlayer) return;
 
-    // 1. REKRUTOVÁNÍ JEDNOTEK
-    // AI chce udržovat armádu úmìrnou svému zlatu, ale nenechat se zruinovat.
-    const desiredUnits = Math.min(200, Math.floor(aiPlayer.income * 10)); // Cíl: 10x pøíjem, max 200
+    // 1. REKRUTOVï¿½Nï¿½ JEDNOTEK
+    // AI chce udrï¿½ovat armï¿½du ï¿½mï¿½rnou svï¿½mu zlatu, ale nenechat se zruinovat.
+    const desiredUnits = Math.min(200, Math.floor(aiPlayer.income * 10)); // Cï¿½l: 10x pï¿½ï¿½jem, max 200
     if (aiPlayer.units < desiredUnits && aiPlayer.gold >= C.UNIT_COST) {
-        const unitsToBuy = Math.min(Math.floor(aiPlayer.gold / C.UNIT_COST), 5); // Max 5 zaráz
+        const unitsToBuy = Math.min(Math.floor(aiPlayer.gold / C.UNIT_COST), 5); // Max 5 zarï¿½z
         aiPlayer.units += unitsToBuy;
         aiPlayer.gold -= unitsToBuy * C.UNIT_COST;
         // console.log(`AI ${playerId} bought ${unitsToBuy} units.`);
     }
 
     // 2. EXPEDICE (EXPANZE)
-    // Pokud máme dost jednotek a málo expedic
+    // Pokud mï¿½me dost jednotek a mï¿½lo expedic
     if (aiPlayer.units > 15 && aiPlayer.activeExpeditions.length < 3) {
-        // Hledáme cíl: Ideálnì neobsazená struktura, o které víme
+        // Hledï¿½me cï¿½l: Ideï¿½lnï¿½ neobsazenï¿½ struktura, o kterï¿½ vï¿½me
         let targetX, targetY;
         const visibleStructures = findKnownFreeStructures(playerId);
 
         if (visibleStructures.length > 0) {
             const star = visibleStructures[Math.floor(Math.random() * visibleStructures.length)];
-            targetX = star.x + Math.floor(star.w / 2); // Støed struktury
+            targetX = star.x + Math.floor(star.w / 2); // Stï¿½ed struktury
             targetY = star.y + Math.floor(star.h / 2);
         } else {
-            // Náhodný prùzkum
+            // Nï¿½hodnï¿½ prï¿½zkum
             targetX = Math.floor(Math.random() * C.GRID_SIZE);
             targetY = Math.floor(Math.random() * C.GRID_SIZE);
         }
 
-        const unitsToSend = Math.min(aiPlayer.units - 5, 25); // Nech si doma aspoò 5, pošli max 25
+        const unitsToSend = Math.min(aiPlayer.units - 5, 25); // Nech si doma aspoï¿½ 5, poï¿½li max 25
 
         if (unitsToSend > 5) {
             launchExpeditionForAI(playerId, targetX, targetY, unitsToSend);
@@ -46,9 +46,9 @@ export function runAIDecision(playerId) {
     }
 
     // 3. STAVBA BUDOV
-    // Pokud máme hodnì surovin, stavíme.
+    // Pokud mï¿½me hodnï¿½ surovin, stavï¿½me.
     if (aiPlayer.gold > 400 && aiPlayer.crystals > 100) {
-        // Co stavìt? Doly > Vesnice > Kasárna
+        // Co stavï¿½t? Doly > Vesnice > Kasï¿½rna
         let typeToBuild = null;
         if (Math.random() < 0.4) typeToBuild = 'mine';
         else if (Math.random() < 0.7) typeToBuild = 'village';
@@ -64,22 +64,22 @@ export function runAIDecision(playerId) {
         }
     }
 
-    // 4. OBSAZOVÁNÍ (CAPTURE)
-    // Pokud vidíme cizí strukturu a máme na ni, bereme ji.
+    // 4. OBSAZOVï¿½Nï¿½ (CAPTURE)
+    // Pokud vidï¿½me cizï¿½ strukturu a mï¿½me na ni, bereme ji.
     const captureTargets = findCaptureTargets(playerId);
     for (const target of captureTargets) {
         if (aiPlayer.gold >= target.data.cost) {
             captureStructure(playerId, target.id);
             // console.log(`AI ${playerId} captured ${target.type} at [${target.x}, ${target.y}].`);
-            break; // Jednu za tick staèí
+            break; // Jednu za tick staï¿½ï¿½
         }
     }
 }
 
-// Pomocná funkce pro AI expedice (nepoužívá UI slider)
+// Pomocnï¿½ funkce pro AI expedice (nepouï¿½ï¿½vï¿½ UI slider)
 function launchExpeditionForAI(playerId, targetX, targetY, unitsToSend) {
     const player = gameState.players[playerId];
-    // if (player.units < unitsToSend) return; // Kontrolováno nahoøe
+    // if (player.units < unitsToSend) return; // Kontrolovï¿½no nahoï¿½e
 
     player.units -= unitsToSend;
     player.expeditionCounter++;
@@ -95,18 +95,18 @@ function launchExpeditionForAI(playerId, targetX, targetY, unitsToSend) {
     player.activeExpeditions.push(newExpedition);
 }
 
-// Najde volné místo vedle existujícího území
+// Najde volnï¿½ mï¿½sto vedle existujï¿½cï¿½ho ï¿½zemï¿½
 function findBuildSpot(playerId, size) {
-    // Projdeme herní pole a hledáme 'owned' buòky tohoto hráèe
-    // Je to drahé, takže to dìláme jen obèas (AI loop je co 3s)
+    // Projdeme hernï¿½ pole a hledï¿½me 'owned' buï¿½ky tohoto hrï¿½ï¿½e
+    // Je to drahï¿½, takï¿½e to dï¿½lï¿½me jen obï¿½as (AI loop je co 3s)
     const candidates = [];
 
     for (let y = 1; y < C.GRID_SIZE - size - 1; y += 2) {
         for (let x = 1; x < C.GRID_SIZE - size - 1; x += 2) {
-            // Rychlý check: Je toto místo blízko nìjaké naší buòky? (zjednodušeno - kontrola vlastnictví)
+            // Rychlï¿½ check: Je toto mï¿½sto blï¿½zko nï¿½jakï¿½ naï¿½ï¿½ buï¿½ky? (zjednoduï¿½eno - kontrola vlastnictvï¿½)
             const cell = gameState.gameBoard[y][x];
             if (cell.ownerId === playerId) {
-                // Zkusíme najít místo v okolí
+                // Zkusï¿½me najï¿½t mï¿½sto v okolï¿½
                 for (let dy = -5; dy <= 5; dy += 2) {
                     for (let dx = -5; dx <= 5; dx += 2) {
                         const nx = x + dx;
@@ -132,9 +132,9 @@ function findBuildSpot(playerId, size) {
 function findKnownFreeStructures(playerId) {
     const targets = [];
     gameState.structures.forEach(s => {
-        // Pokud není naše (ownerId !== playerId)
-        // A je viditelná (nìjaká buòka pod ní je visibleTo playerId)
-        // A NENÍ to 'owned_' (tj. je neutrální)
+        // Pokud nenï¿½ naï¿½e (ownerId !== playerId)
+        // A je viditelnï¿½ (nï¿½jakï¿½ buï¿½ka pod nï¿½ je visibleTo playerId)
+        // A NENï¿½ to 'owned_' (tj. je neutrï¿½lnï¿½)
         if (s.ownerId !== playerId && !s.type.startsWith('owned_')) {
             const cell = gameState.gameBoard[s.y][s.x];
             if (cell.visibleTo.includes(playerId)) {
@@ -148,8 +148,8 @@ function findKnownFreeStructures(playerId) {
 function findCaptureTargets(playerId) {
     const targets = [];
     gameState.structures.forEach(s => {
-        // Cizí, viditelná, a NENÍ neutrální (pro jednoduchost AI zatím krade jen neutrální, ale pojïme povolit i kradení cizích pokud jsou Owned)
-        // UPDATE: AI by mìla brát hlavnì ty, co sousedí s jejím územím nebo jsou vidìt.
+        // Cizï¿½, viditelnï¿½, a NENï¿½ neutrï¿½lnï¿½ (pro jednoduchost AI zatï¿½m krade jen neutrï¿½lnï¿½, ale pojï¿½me povolit i kradenï¿½ cizï¿½ch pokud jsou Owned)
+        // UPDATE: AI by mï¿½la brï¿½t hlavnï¿½ ty, co sousedï¿½ s jejï¿½m ï¿½zemï¿½m nebo jsou vidï¿½t.
         if (s.ownerId !== playerId) {
             const cell = gameState.gameBoard[s.y][s.x];
             if (cell.visibleTo.includes(playerId)) {

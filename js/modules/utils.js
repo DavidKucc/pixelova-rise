@@ -1,9 +1,9 @@
 // js/modules/utils.js
-// PomocnÈ, znovupouûitelnÈ funkce, kterÈ nejsou p¯Ìmo v·zanÈ na hernÌ logiku.
-console.log('[DEBUG] utils.js loaded v=163');
+// Pomocn√©, znovupou≈æiteln√© funkce, kter√© nejsou p≈ô√≠mo v√°zan√© na hern√≠ logiku.
+console.log('[DEBUG] utils.js loaded v=170');
 
-import * as C from './config.js?v=169';
-import { gameState } from './state.js?v=169';
+import * as C from './config.js?v=170';
+import { gameState } from './state.js?v=170';
 
 export function getNeighbors(x, y) {
     const n = [];
@@ -36,12 +36,12 @@ export function createStructure(type, x, y, w, h, data, ownerId, externalId = nu
         for (let j = x; j < x + w; j++) {
             const cell = gameState.gameBoard[i]?.[j];
             if (cell) {
-                // Toto je klÌËovÈ: kaûd· buÚka, kterou struktura zabÌr·,
-                // musÌ dostat ID tÈto struktury.
+                // Toto je kl√≠ƒçov√©: ka≈æd√° bu≈àka, kterou struktura zab√≠r√°,
+                // mus√≠ dostat ID t√©to struktury.
                 cell.structureId = id;
 
-                // Pokud je struktura vytv·¯ena s vlastnÌkem (nap¯. startovnÌ z·kladna),
-                // rovnou mu p¯i¯adÌme i buÚky pod nÌ.
+                // Pokud je struktura vytv√°≈ôena s vlastn√≠kem (nap≈ô. startovn√≠ z√°kladna),
+                // rovnou mu p≈ôi≈ôad√≠me i bu≈àky pod n√≠.
                 if (ownerId) {
                     cell.ownerId = ownerId;
                     if (!cell.visibleTo.includes(ownerId)) {

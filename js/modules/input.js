@@ -1,19 +1,19 @@
 // js/modules/input.js
-// Zpracování vstupù od uživatele (myš, zoom, kliknutí).
-console.log('[INPUT] input.js loaded v=163');
+// ZpracovÃ¡nÃ­ vstupÅ¯ od uÅ¾ivatele (myÅ¡, zoom, kliknutÃ­).
+console.log('[INPUT] input.js loaded v=170');
 
-import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=169';
-import { viewportState, gameState } from './state.js?v=169';
-import * as C from './config.js?v=169';
-import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition } from './game.js?v=169';
+import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=170';
+import { viewportState, gameState } from './state.js?v=170';
+import * as C from './config.js?v=170';
+import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition } from './game.js?v=170';
 
-// Stav klávesy Q
+// Stav klÃ¡vesy Q
 let isQPressed = false;
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyQ') isQPressed = true;
 
-    // Klávesové zkratky
+    // KlÃ¡vesovÃ© zkratky
     if (e.code === 'KeyG') {
         const coords = viewportState.lastMouseGridCoords;
         if (coords) gatherExpeditions('human', coords.x, coords.y);
@@ -45,13 +45,13 @@ function onMouseDown(e) {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    if (e.button === 0) { // Levá myš -> Rozhodování mezi Tažením kamery (Pan) a Box Selectem
+    if (e.button === 0) { // LevÃ¡ myÅ¡ -> RozhodovÃ¡nÃ­ mezi TaÅ¾enÃ­m kamery (Pan) a Box Selectem
         const now = Date.now();
         const isDoubleClick = (now - lastLeftClickTime) < 300;
         lastLeftClickTime = now;
 
         if (isDoubleClick) {
-            // Dvojklik & držení: Výbìrový box
+            // Dvojklik & drï¿½enï¿½: Vï¿½bï¿½rovï¿½ box
             gameState.selectionBox.active = true;
             gameState.selectionBox.startX = mouseX;
             gameState.selectionBox.startY = mouseY;
@@ -59,7 +59,7 @@ function onMouseDown(e) {
             gameState.selectionBox.endY = mouseY;
             viewportState.didDrag = false;
         } else {
-            // Jeden klik & držení: Pohyb mapou (Pan)
+            // Jeden klik & drï¿½enï¿½: Pohyb mapou (Pan)
             isPanning = true;
             viewportState.didDrag = false;
             viewportState.startPos.x = e.clientX - viewportState.gridPos.x;
@@ -73,7 +73,7 @@ function onMouseMove(e) {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    // VŽDY aktualizovat souøadnice pod myší
+    // Vï¿½DY aktualizovat souï¿½adnice pod myï¿½ï¿½
     viewportState.lastMouseGridCoords = getGridCoordsFromEvent(e);
 
     if (gameState.selectionBox.active) {
@@ -85,7 +85,7 @@ function onMouseMove(e) {
         }
         gameState.needsRedraw = true;
     } else if (isPanning) {
-        // Logika pro panování (LMB Single Hold - Tažení kamery)
+        // Logika pro panovï¿½nï¿½ (LMB Single Hold - Taï¿½enï¿½ kamery)
         if (!viewportState.didDrag && Math.hypot(e.clientX - (viewportState.startPos.x + viewportState.gridPos.x), e.clientY - (viewportState.startPos.y + viewportState.gridPos.y)) > 5) {
             viewportState.didDrag = true;
             removeContextMenu();
@@ -101,15 +101,15 @@ function onMouseMove(e) {
 function onMouseUp(e) {
     if (e.button === 0) {
         if (gameState.selectionBox.active) {
-            // Ukonèen výbìrový box
+            // Ukonï¿½en vï¿½bï¿½rovï¿½ box
             if (viewportState.didDrag) {
                 performBoxSelection();
             }
             gameState.selectionBox.active = false;
         } else if (isPanning) {
-            // Ukonèen pan
+            // Ukonï¿½en pan
             if (!viewportState.didDrag) {
-                // Nebylo to tažení, takže to byl normální single-click!
+                // Nebylo to taï¿½enï¿½, takï¿½e to byl normï¿½lnï¿½ single-click!
                 if (!e.shiftKey) {
                     gameState.selectedExpeditionIds = [];
                     gameState.selectedStructureId = null;
@@ -120,7 +120,7 @@ function onMouseUp(e) {
         }
     }
 
-    // Pojistka pro pøípad ztráty focusu
+    // Pojistka pro pï¿½ï¿½pad ztrï¿½ty focusu
     if (e.buttons === 0) {
         gameState.selectionBox.active = false;
         isPanning = false;
@@ -141,14 +141,14 @@ function performBoxSelection() {
     if (!player) return;
 
     player.activeExpeditions.forEach(exp => {
-        // Pøevod herních souøadnic expedice na obrazovkové
+        // Pï¿½evod hernï¿½ch souï¿½adnic expedice na obrazovkovï¿½
         const curX = Math.round(exp.startX + (exp.targetX - exp.startX) * exp.progress);
         const curY = Math.round(exp.startY + (exp.targetY - exp.startY) * exp.progress);
 
         const screenX = curX * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale + viewportState.gridPos.x;
         const screenY = curY * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale + viewportState.gridPos.y;
 
-        // Hitbox: Expedice je vybrána, pokud se její mrak (cca 2 buòky polomìr) dotýká boxu
+        // Hitbox: Expedice je vybrï¿½na, pokud se jejï¿½ mrak (cca 2 buï¿½ky polomï¿½r) dotï¿½kï¿½ boxu
         const margin = 2 * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale;
 
         if (screenX + margin >= x1 && screenX - margin <= x2 &&
@@ -159,25 +159,25 @@ function performBoxSelection() {
 
     gameState.selectedExpeditionIds = selectedIds;
     if (selectedIds.length > 0) {
-        gameState.selectedStructureId = null; // Zrušit výbìr budovy pøi výbìru armády
+        gameState.selectedStructureId = null; // Zruï¿½it vï¿½bï¿½r budovy pï¿½i vï¿½bï¿½ru armï¿½dy
     }
-    console.log(`[INPUT] Vybráno ${selectedIds.length} expedic.`);
+    console.log(`[INPUT] Vybrï¿½no ${selectedIds.length} expedic.`);
 }
 
 function onWheel(e) {
     e.preventDefault();
 
-    // Pokud drží Q, mìníme velikost expedice
+    // Pokud drï¿½ï¿½ Q, mï¿½nï¿½me velikost expedice
     if (isQPressed) {
         let currentValue = parseInt(ui.slider.value, 10);
-        const delta = e.deltaY > 0 ? -5 : 5; // Koleèko dolù = ménì, nahoru = více
+        const delta = e.deltaY > 0 ? -5 : 5; // Koleï¿½ko dolï¿½ = mï¿½nï¿½, nahoru = vï¿½ce
         currentValue = Math.max(1, Math.min(100, currentValue + delta));
         ui.slider.value = currentValue;
         updateSliderLabel(); // Aktualizace textu
         return;
     }
 
-    // Jinak klasický zoom
+    // Jinak klasickï¿½ zoom
     const rect = ui.viewport.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
@@ -211,7 +211,7 @@ function onGridClick(e) {
     const player = gameState.players[gameState.myPlayerId];
     if (!player) return;
 
-    // Klik na vlastní objevenou expedici vybere jen tu jednu (pøípadnì pøidá s shiftem)
+    // Klik na vlastnï¿½ objevenou expedici vybere jen tu jednu (pï¿½ï¿½padnï¿½ pï¿½idï¿½ s shiftem)
     const hitExp = player.activeExpeditions.find(exp => {
         const curX = Math.round(exp.startX + (exp.targetX - exp.startX) * exp.progress);
         const curY = Math.round(exp.startY + (exp.targetY - exp.startY) * exp.progress);
@@ -229,9 +229,9 @@ function onGridClick(e) {
     handleCellClick(cell);
 }
 
-// Odstranìní nativního dvojkliku z canvasu (byl pøesunut na 2x pravý a 2x levý)
+// Odstranï¿½nï¿½ nativnï¿½ho dvojkliku z canvasu (byl pï¿½esunut na 2x pravï¿½ a 2x levï¿½)
 ui.viewport.addEventListener('click', (e) => {
-    // Ošetøeno z onMouseUp (normální klik), není potøeba nativní listener 
+    // Oï¿½etï¿½eno z onMouseUp (normï¿½lnï¿½ klik), nenï¿½ potï¿½eba nativnï¿½ listener 
 });
 
 function handleRightClick(e) {
@@ -263,7 +263,7 @@ function handleRightDoubleClick(e) {
     if (!coords) return;
 
     if (gameState.selectedExpeditionIds.length > 0) {
-        // AKCE PRO VYBRANÉ EXPEDICE - POVEL K POCHODU (PRAVÝ DVOJKLIK)
+        // AKCE PRO VYBRANï¿½ EXPEDICE - POVEL K POCHODU (PRAVï¿½ DVOJKLIK)
         removeContextMenu();
         const ids = [...gameState.selectedExpeditionIds];
         if (e.shiftKey) {
@@ -291,31 +291,31 @@ export function attachEventListeners(initGame) {
     ui.viewport.addEventListener('wheel', onWheel, { passive: false });
     ui.viewport.addEventListener('contextmenu', handleRightClick);
 
-    // Globální pojistka proti probublání kontextového menu z mousedown eventù
+    // Globï¿½lnï¿½ pojistka proti probublï¿½nï¿½ kontextovï¿½ho menu z mousedown eventï¿½
     document.addEventListener('contextmenu', (e) => {
         if (e.target.closest('#game-viewport') || e.target.closest('#game-canvas')) {
             e.preventDefault();
         }
     });
 
-    // Vlastní logika pro odchycení pravého dvojkliku, který prohlížeè nativnì moc dobøe nepodporuje
+    // Vlastnï¿½ logika pro odchycenï¿½ pravï¿½ho dvojkliku, kterï¿½ prohlï¿½eï¿½ nativnï¿½ moc dobï¿½e nepodporuje
     let rightClickTimeout = null;
     let rightClickCount = 0;
 
     ui.viewport.addEventListener('mousedown', (e) => {
         if (e.button === 2) {
-            e.preventDefault(); // Zabraòuje výchozímu chování pro jistotu
+            e.preventDefault(); // Zabraï¿½uje vï¿½chozï¿½mu chovï¿½nï¿½ pro jistotu
             rightClickCount++;
             if (rightClickCount === 1) {
-                // První klik se zpracuje nativnì pøes contextmenu event, ale nastavíme si timeout na dvojklik
+                // Prvnï¿½ klik se zpracuje nativnï¿½ pï¿½es contextmenu event, ale nastavï¿½me si timeout na dvojklik
                 rightClickTimeout = setTimeout(() => {
                     rightClickCount = 0;
                 }, 250); // 250ms rozestup na RTS dvojklik
             } else if (rightClickCount === 2) {
-                // Druhý klik v èasovém limitu!
+                // Druhï¿½ klik v ï¿½asovï¿½m limitu!
                 clearTimeout(rightClickTimeout);
                 rightClickCount = 0;
-                removeContextMenu(); // Uklidíme dialog z prvního kliku!
+                removeContextMenu(); // Uklidï¿½me dialog z prvnï¿½ho kliku!
                 handleRightDoubleClick(e);
             }
         }
@@ -326,7 +326,7 @@ export function attachEventListeners(initGame) {
         if (!e.target.closest('.context-menu')) removeContextMenu();
     });
     ui.resetBtn.addEventListener('click', () => {
-        if (confirm('Opravdu chcete hru ukonèit a vrátit se do hlavní nabídky?')) {
+        if (confirm('Opravdu chcete hru ukonï¿½it a vrï¿½tit se do hlavnï¿½ nabï¿½dky?')) {
             window.location.reload();
         }
     });
@@ -342,7 +342,7 @@ export function attachEventListeners(initGame) {
         // Fix: Ochrana proti NaN
         if (isNaN(purchasable) || purchasable < 0) purchasable = 0;
 
-        // Ochrana pro pøípad, že hráè nemá na 10, ale klikne na 10 (tlaèítko by mìlo být disabled, ale pro jistotu)
+        // Ochrana pro pï¿½ï¿½pad, ï¿½e hrï¿½ï¿½ nemï¿½ na 10, ale klikne na 10 (tlaï¿½ï¿½tko by mï¿½lo bï¿½t disabled, ale pro jistotu)
         if (count !== 'max' && player.gold < purchasable * C.UNIT_COST) return;
 
         const totalCost = purchasable * C.UNIT_COST;

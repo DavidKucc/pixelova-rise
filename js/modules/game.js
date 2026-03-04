@@ -1,21 +1,21 @@
-console.log('[DEBUG] game.js loaded v=163');
+console.log('[DEBUG] game.js loaded v=170');
 
-import * as C from './config.js?v=169';
-import { gameState, viewportState } from './state.js?v=169';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=169';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=169';
-import { gameLoop } from './renderer.js?v=169';
-import { runAIDecision } from './ai.js?v=169';
-import { Logger } from './logger.js?v=169';
+import * as C from './config.js?v=170';
+import { gameState, viewportState } from './state.js?v=170';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=170';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=170';
+import { gameLoop } from './renderer.js?v=170';
+import { runAIDecision } from './ai.js?v=170';
+import { Logger } from './logger.js?v=170';
 
 // --- MULTIPLAYER SYNC ---
 import { ref, push, set, onValue, onDisconnect, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { db } from '../firebase-config.js?v=169';
+import { db } from '../firebase-config.js?v=170';
 
 export async function initGame(hostStatus = false, playerId = 'local_player', lobbyId = null, playersData = null) {
     console.log(`[GAME] Inicializace hry v=163 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
 
-    // UloûenÌ parametr˘ do glob·lnÌho stavu (DŸLEéIT…!)
+    // UloÔøΩenÔøΩ parametrÔøΩ do globÔøΩlnÔøΩho stavu (DÔøΩLEÔøΩITÔøΩ!)
     gameState.isHost = hostStatus;
     gameState.myPlayerId = playerId;
     gameState.currentLobbyId = lobbyId;
@@ -26,35 +26,36 @@ export async function initGame(hostStatus = false, playerId = 'local_player', lo
         gameState.logicIntervals.forEach(clearInterval);
     }
 
-    // VyËiötÏnÌ logu p¯es UI modul
+    // VyÔøΩiÔøΩtÔøΩnÔøΩ logu pÔøΩes UI modul
     const logEl = document.getElementById('log-container');
     if (logEl) logEl.innerHTML = '';
 
     removeContextMenu();
 
-    // INICIALIZACE HR¡»Ÿ Z LOBBY DATA (ROZD¡V¡NÕ KARET)
+    // INICIALIZACE HRÔøΩÔøΩÔøΩ Z LOBBY DATA (ROZDÔøΩVÔøΩNÔøΩ KARET)
     gameState.players = {};
 
     if (playersData) {
-        // Se¯adit hr·Ëe konzistentnÏ (nap¯Ìklad abecednÏ podle klÌËe = po¯adÌ p¯ipojenÌ do Firebase)
+        // SeÔøΩadit hrÔøΩÔøΩe konzistentnÔøΩ (napÔøΩÔøΩklad abecednÔøΩ podle klÔøΩÔøΩe = poÔøΩadÔøΩ pÔøΩipojenÔøΩ do Firebase)
         const playerIds = Object.keys(playersData).sort();
 
         playerIds.forEach((id, index) => {
-            if (index >= C.MAX_PLAYERS) return; // Z·chrana proti p¯eplnÏnÌ mapy
+            if (index >= C.MAX_PLAYERS) return; // ZÔøΩchrana proti pÔøΩeplnÔøΩnÔøΩ mapy
+            if (index >= C.MAX_PLAYERS) return; // Z√°chrana proti p≈ôeplnƒõn√≠ mapy
 
             const colorCard = C.PLAYER_COLORS[index];
             const pData = playersData[id];
 
             gameState.players[id] = {
                 id: id,
-                name: pData.name || `Hr·Ë ${index + 1}`,
+                name: pData.name || `Hr√°ƒç ${index + 1}`,
                 color: colorCard.color,
                 baseColor: colorCard.baseColor,
                 borderColor: colorCard.borderColor,
-                type: 'human', // ProzatÌm vöichni re·lnÌ lidÈ z lobby
-                index: index, // Po¯adÌ slouûÌ pro v˝poËet roh˘ z·kladny
+                type: 'human', // Prozat√≠m v≈°ichni re√°ln√≠ lid√© z lobby
+                index: index, // Po≈ôad√≠ slou≈æ√≠ pro v√Ωpoƒçet roh≈Ø z√°kladny
 
-                // EkonomicÈ "karty"
+                // Ekonomick√© "karty"
                 gold: C.INITIAL_GOLD,
                 units: C.INITIAL_UNITS,
                 income: C.BASE_INCOME,
@@ -66,7 +67,7 @@ export async function initGame(hostStatus = false, playerId = 'local_player', lo
         });
     }
 
-    console.log("[GAME] Hr·Ëi inicializov·ni (v162):", gameState.players);
+    console.log("[GAME] Hr√°ƒçi inicializov√°ni (v170):", gameState.players);
 
     gameState.gameBoard = [];
     gameState.structures.clear();
@@ -77,9 +78,9 @@ export async function initGame(hostStatus = false, playerId = 'local_player', lo
     gameState.expeditionCounter = 0;
     gameState.fractionalUnits = 0;
 
-    // VracÌme Promise, kter˝ se vy¯eöÌ, aû se dokonËÌ finishInit
+    // Vrac√≠me Promise, kter√° se vy≈ôe≈°√≠, a≈æ se dokonƒç√≠ finishInit
     return new Promise((resolve, reject) => {
-        // Vytvo¯enÌ hernÌho pole - SYNCHRONIZOVAN…
+        // Vytvo≈ôen√≠ hern√≠ho pole - SYNCHRONIZOVAN√â
         if (gameState.currentLobbyId) {
             syncWorldGeneration(resolve).catch(reject);
         } else {
@@ -109,9 +110,9 @@ async function syncWorldGeneration(resolve) {
     const worldRef = ref(db, `lobbies/${gameState.currentLobbyId}/world`);
 
     if (gameState.isHost) {
-        console.log("[WORLD] Hostitel generuje svÏt...");
+        console.log("[WORLD] Hostitel generuje svƒõt...");
         gameState.gameBoard = [];
-        let terrainString = ''; // Base64 / String pro bezpeËn˝ p¯enos
+        let terrainString = ''; // Base64 / String pro bezpeƒçn√Ω p≈ôenos
 
         for (let y = 0; y < C.GRID_SIZE; y++) {
             const row = [];
@@ -121,7 +122,7 @@ async function syncWorldGeneration(resolve) {
                     terrain = Math.random() < 0.6 ? 'forest' : 'road';
                 }
                 row.push({ x, y, ownerId: null, structureId: null, terrain, visibleTo: [] });
-                terrainString += (terrain === 'none' ? '0' : (terrain === 'forest' ? '1' : '2'));
+                terrainString += (terrain === 'none' ? '0' : (terrain === '1' ? '1' : '2'));
             }
             gameState.gameBoard.push(row);
         }
@@ -129,8 +130,8 @@ async function syncWorldGeneration(resolve) {
         // VYGENEROVAT BUDOVY PRED ODESLANIM NA FIREBASE
         generateStructures();
 
-        // Uloûit do Firebase p¯es bezpeËn˝ JSON string
-        console.log("[WORLD] Nahr·v·m data svÏta a budov na server (bezpeËn· stringifikace)...");
+        // Ulo≈æit do Firebase p≈ôes bezpeƒçn√Ω JSON string
+        console.log("[WORLD] Nahr√°v√°m data svƒõta a budov na server (bezpeƒçn√© stringifikace)...");
         const structureArray = Array.from(gameState.structures.values());
 
         await set(worldRef, {
@@ -139,10 +140,10 @@ async function syncWorldGeneration(resolve) {
             seed: Math.random(),
             sessionToken: gameState.sessionToken || 'legacy'
         });
-        console.log("[WORLD] Data svÏta nahr·na.");
+        console.log("[WORLD] Data svƒõta nahr√°na.");
         finishInit(resolve);
     } else {
-        console.log(`[WORLD] Klient (${gameState.myPlayerId}) Ëek· na data svÏta pro session ${gameState.sessionToken}...`);
+        console.log(`[WORLD] Klient (${gameState.myPlayerId}) ƒçek√° na data svƒõta pro session ${gameState.sessionToken}...`);
 
         let unsubWORLD;
         let isResolvedWORLD = false;
@@ -152,13 +153,13 @@ async function syncWorldGeneration(resolve) {
 
             const data = snapshot.val();
             if (snapshot.exists() && data && data.terrainStr && data.structuresJSON) {
-                // SkuteËnÏ checkneme token, abychom nenat·hli starou mapu z minulÈ relace!
+                // Skuteƒçnƒõ checkneme token, abychom nenat√°hli starou mapu z minul√© relace!
                 if (data.sessionToken === gameState.sessionToken || gameState.sessionToken === 'legacy') {
-                    console.log("[WORLD] Aktu·lnÌ Data svÏta dorazila! (v167)");
+                    console.log("[WORLD] Aktu√°ln√≠ Data svƒõta dorazila! (v170)");
                     const tStr = data.terrainStr;
                     const remoteStructures = JSON.parse(data.structuresJSON);
 
-                    // 1. Rekonstrukce terÈnu
+                    // 1. Rekonstrukce ter√©nu
                     gameState.gameBoard = [];
                     let charIndex = 0;
                     for (let y = 0; y < C.GRID_SIZE; y++) {
@@ -180,9 +181,9 @@ async function syncWorldGeneration(resolve) {
                     isResolvedWORLD = true;
                     if (unsubWORLD) unsubWORLD();
 
-                    finishInit(resolve); // SvÏt a budovy uû m·me staûenÈ z Firebase, spouötÌme klienta!
+                    finishInit(resolve); // Svƒõt a budovy u≈æ m√°me sta≈æen√© z Firebase, spou≈°t√≠me klienta!
                 } else {
-                    console.log("[WORLD] Ignoruji star˝ svÏt z minulÈ session...");
+                    console.log("[WORLD] Ignoruji star√Ω svƒõt z minul√© session...");
                 }
             }
         });
@@ -190,34 +191,34 @@ async function syncWorldGeneration(resolve) {
 }
 
 function generateStructures() {
-    // Definovat Base pozice podle index˘ hr·Ë˘ (z konfigurace)
+    // Definovat Base pozice podle index≈Ø hr√°ƒç≈Ø (z konfigurace)
     Object.values(gameState.players).forEach((p) => {
         const basePos = C.BASE_POSITIONS[p.index];
         if (basePos) {
             const baseSize = 6;
-            createStructure('base', basePos.x, basePos.y, baseSize, baseSize, { name: 'HlavnÌ stan - ' + p.name }, p.id);
+            createStructure('base', basePos.x, basePos.y, baseSize, baseSize, { name: 'Hlavn√≠ stan - ' + p.name }, p.id);
         }
     });
 
-    // N·hodnÈ struktury
+    // N√°hodn√© struktury
     for (let i = 0; i < C.NUM_STRUCTURES; i++) {
         const rand = Math.random();
-        if (rand < 0.35) placeRandomStructure('mine', 2, { name: 'D˘l', income: 5, cost: 100 });
+        if (rand < 0.35) placeRandomStructure('mine', 2, { name: 'D≈Øl', income: 5, cost: 100 });
         else if (rand < 0.70) placeRandomStructure('village', 3, { name: 'Vesnice', unit_bonus: 7, cost: 75 });
-        else if (rand < 0.85) placeRandomStructure('crystal_mine', 2, { name: 'Krystalov˝ d˘l', income: 1, cost: 300 });
-        else if (rand < 0.95) placeRandomStructure('ancient_library', 4, { name: 'Prastar· knihovna', reveal_radius: 15, cost: 250 });
-        else placeRandomStructure('trading_post', 3, { name: 'TrûiötÏ', cost: 150 });
+        else if (rand < 0.85) placeRandomStructure('crystal_mine', 2, { name: 'Krystalov√Ω d≈Øl', income: 1, cost: 300 });
+        else if (rand < 0.95) placeRandomStructure('ancient_library', 4, { name: 'Prastar√° knihovna', reveal_radius: 15, cost: 250 });
+        else placeRandomStructure('trading_post', 3, { name: 'Tr≈æi≈°tƒõ', cost: 150 });
     }
 }
 
 function finishInit(resolveCallback) {
-    // MULTIPLAYER SYNC: P¯ipojit se k odbÏru cizÌch expedic
+    // MULTIPLAYER SYNC: P≈ôipojit se k odbƒõru ciz√≠ch expedic
     if (gameState.currentLobbyId) {
         setupMultiplayerSync();
     }
 
-    // ⁄VODNÕ ODHALENÕ MAPY (aby nebyla Ëern· obrazovka!)
-    // ObjevÌme mapy vöech aktivnÌch hr·Ë˘ okolo jejich z·kladen, ale jen do jejich pohledu
+    // √öVODN√ç ODHALEN√ç MAPY (aby nebyla ƒçern√° obrazovka!)
+    // Objev√≠me mapy v≈°ech aktivn√≠ch hr√°ƒç≈Ø okolo jejich z√°kladen, ale jen do jejich pohledu
     Object.values(gameState.players).forEach((p) => {
         const basePos = C.BASE_POSITIONS[p.index];
         if (basePos) {
@@ -225,7 +226,7 @@ function finishInit(resolveCallback) {
         }
     });
 
-    // Viewport: ZacÌlit kameru hr·Ëe na JEHO z·kladnu
+    // Viewport: Zac√≠lit kameru hr√°ƒçe na JEHO z√°kladnu
     viewportState.scale = 0.5;
     const vp = document.getElementById('game-viewport');
     if (vp) {
@@ -235,13 +236,13 @@ function finishInit(resolveCallback) {
         if (basePos) {
             viewportState.gridPos.x = vp.clientWidth / 2 - (basePos.x * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
             viewportState.gridPos.y = vp.clientHeight / 2 - (basePos.y * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
-            console.log(`[GAME] Kamera vycentrovan· na: [${basePos.x}, ${basePos.y}] pro ${gameState.myPlayerId}`);
+            console.log(`[GAME] Kamera vycentrovan√° na: [${basePos.x}, ${basePos.y}] pro ${gameState.myPlayerId}`);
         }
     }
 
-    // attachEventListeners(initGame); // VOL¡ MAIN.JS kvuli z·vislostem
+    // attachEventListeners(initGame); // VOL√Å MAIN.JS kvuli z√°vislostem
 
-    // SmyËky
+    // Smyƒçky
     gameState.logicIntervals = [];
     gameState.logicIntervals.push(setInterval(gameTick, 1000));
     gameState.logicIntervals.push(setInterval(aiDecisionLoop, 3000));
@@ -249,28 +250,28 @@ function finishInit(resolveCallback) {
     // POJISTKA UI
     gameState.logicIntervals.push(setInterval(updateUI, 500));
 
-    // Inicializujeme p¯Ìjem, aby hr·Ëi zaËali spr·vnÏ
+    // Inicializujeme p≈ô√≠jem, aby hr√°ƒçi zaƒçali spr√°vnƒõ
     Object.keys(gameState.players).forEach(pId => {
         recalculatePlayerIncome(pId);
     });
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`VÌtej v PixelovÈ ÿÌöi! Verze 165 aktivnÌ. Hrajeö jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
+    logMessage(`V√≠tej v Pixelov√© ≈ô√≠≈°i! Verze 170 aktivn√≠. Hraje≈° jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
     requestAnimationFrame(physicsLoop);
 
-    // NYNÕ JE HRA KOMPLETNÃ PÿIPRAVEN¡ A MŸéEME ODKR›T UI
+    // NYN√ç JE HRA KOMPLETNƒö P≈òIPRAVEN√Å A M≈Æ≈ΩEME ODKR√ùT UI
     window.showScreen('game-ui');
 
-    // ZapojenÌ vstupnÌch listener˘ (mouse/keyboard events)
-    import('../main.js?v=169').then(m => {
+    // Zapojen√≠ vstupn√≠ch listener≈Ø (mouse/keyboard events)
+    import('../main.js?v=170').then(m => {
         if (window.attachEventListeners) window.attachEventListeners(); // v main.js attach fn wrapper
     });
 
-    // Pojistka p¯ekreslenÌ pl·tna p¯esnÏ potÈ, co dom odryl CSS vrstvu DIVu
+    // Pojistka p≈ôekreslen√≠ pl√°tna p≈ôesnƒõ pot√©, co dom odryl CSS vrstvu DIVu
     setTimeout(() => {
         const vp = document.getElementById('game-viewport');
         const canvas = document.getElementById('game-canvas');
@@ -296,11 +297,11 @@ export function recalculatePlayerIncome(playerId) {
     player.income = income;
 }
 
-// --- HERNÕ SMY»KY ---
+// --- HERN√ç SMYƒåKY ---
 let lastPhysicsTime = performance.now();
 
 export function physicsLoop(timestamp) {
-    const dt = (timestamp - lastPhysicsTime) / 1000; // vte¯iny ubÏhlÈ od minulÈho framu
+    const dt = (timestamp - lastPhysicsTime) / 1000; // vte≈ôiny ubƒõhl√© od minul√©ho framu
     lastPhysicsTime = timestamp;
 
     let movedAny = false;
@@ -317,7 +318,7 @@ export function physicsLoop(timestamp) {
             if (!exp.arrived) {
                 const dist = Math.hypot(exp.targetX - exp.startX, exp.targetY - exp.startY);
 
-                // KonstantnÌ rychlost p¯epoËten· posunut· o Delta Time snÌmk˘ vykreslovacÌch monitor˘
+                // Konstantn√≠ rychlost p≈ôepoƒçten√° posunut√≠ o Delta Time sn√≠mk≈Ø vykreslovac√≠ch monitor≈Ø
                 const progressDelta = dist > 0 ? ((C.EXPEDITION_SPEED * dt) / dist) : 1;
                 exp.progress += progressDelta;
 
@@ -327,7 +328,7 @@ export function physicsLoop(timestamp) {
                     handleExpeditionArrival(playerId, exp);
                 }
             } else {
-                // Uû dorazila
+                // U≈æ dorazila
                 if (playerId === gameState.myPlayerId && gameState.logicIntervals) {
                     revealMapAround(exp.targetX, exp.targetY, Math.max(5, 2 + Math.floor(Math.sqrt(exp.unitsLeft) / 2)), playerId);
                 }
@@ -337,7 +338,7 @@ export function physicsLoop(timestamp) {
                 const curX = exp.startX + (exp.targetX - exp.startX) * exp.progress;
                 const curY = exp.startY + (exp.targetY - exp.startY) * exp.progress;
 
-                // FOG OF WAR: Lok·lnÏ odhaluje mapu pouze moje vlastnÌ expedice!
+                // FOG OF WAR: Lok√°ln√≠ odhaluje mapu pouze moje vlastn√≠ expedice!
                 if (playerId === gameState.myPlayerId) {
                     const moveRevealRadius = Math.max(5, 2 + Math.floor(Math.sqrt(exp.unitsLeft) / 2));
                     revealMapAround(Math.round(curX), Math.round(curY), moveRevealRadius, playerId);
@@ -349,7 +350,7 @@ export function physicsLoop(timestamp) {
 
     if (movedAny) gameState.needsRedraw = true;
 
-    // AsynchronnÏ toËÌme dokola jak blesk (cca 60-144x za sekundu v z·vislosti na monitoru)
+    // Asynchronnƒõ toƒç√≠me dokola jak blesk (cca 60-144x za sekundu v z√°vislosti na monitoru)
     requestAnimationFrame(physicsLoop);
 }
 
@@ -358,24 +359,24 @@ function gameTick() {
         const player = gameState.players[playerId];
         if (!player) continue;
 
-        // P¯Ìjem zlata
+        // P≈ô√≠jem zlata
         player.gold += player.income;
 
-        // ⁄drûba budov
+        // √ödr≈æba budov
         gameState.structures.forEach(s => {
             if (s && s.ownerId === playerId && s.data && s.data.upkeep) {
                 player.gold -= s.data.upkeep.gold;
             }
         });
 
-        // Produkce krystal˘ z dol˘
+        // Produkce krystal≈Ø z dol≈Ø
         gameState.structures.forEach(s => {
             if (s && s.ownerId === playerId && s.type === 'owned_crystal_mine' && s.data) {
-                player.crystals += (s.data.income || 0) / 15; // Krystaly jsou pomalejöÌ
+                player.crystals += (s.data.income || 0) / 15; // Krystaly jsou pomalej≈°√≠
             }
         });
 
-        // BOJOV› SYST…M (Meat Grinder)
+        // BOJOV√ù SYST√âM (Meat Grinder)
         if (player.activeExpeditions) {
             handleCombatBetweenExpeditions(playerId);
         }
@@ -405,12 +406,12 @@ function handleCombatBetweenExpeditions(p1Id) {
                     const cell = gameState.gameBoard[Math.round(e1Y)]?.[Math.round(e1X)];
                     const terrainWidth = (cell?.terrain === 'forest') ? 0.2 : 1.0;
 
-                    // V˝poËet ztr·t (zjednoduöen˝ Meat Grinder)
+                    // V√Ωpoƒçet ztr√°t (zjednodu≈°en√Ω Meat Grinder)
                     const baseLoss = 2 * terrainWidth;
                     e1.unitsLeft -= baseLoss;
                     e2.unitsLeft -= baseLoss;
 
-                    // SYST…M PANIKY
+                    // SYST√âM PANIKY
                     if (e1.unitsLeft < e1.initialUnits * 0.5) {
                         e1.panic = true;
                         redirectExpeditionToHome(p1Id, e1);
@@ -434,7 +435,7 @@ function redirectExpeditionToHome(playerId, exp) {
     const base = Array.from(gameState.structures.values()).find(s => s.ownerId === playerId && s.type.includes('base'));
     if (base) {
         if (!exp.isReturning) {
-            logMessage(`Expedice #${exp.id} panika¯Ì a ustupuje k z·kladnÏ!`, 'warn');
+            logMessage(`Expedice #${exp.id} panika≈ô√≠ a ustupuje k z√°kladnƒõ!`, 'warn');
             exp.isReturning = true;
             redirectExpedition(playerId, exp.id, base.x + base.w / 2, base.y + base.h / 2);
         }
@@ -445,7 +446,7 @@ function removeExpedition(playerId, expId) {
     const player = gameState.players[playerId];
     if (player) {
         player.activeExpeditions = player.activeExpeditions.filter(e => e.id !== expId);
-        logMessage(`Expedice #${expId} byla zniËena v boji.`, 'error');
+        logMessage(`Expedice #${expId} byla zniƒçena v boji.`, 'error');
     }
 }
 
@@ -456,7 +457,7 @@ function handleExpeditionArrival(playerId, exp) {
     const player = gameState.players[playerId];
     if (!player) return;
 
-    // Dynamick˝ r·dius odhalenÌ a z·boru v cÌli (v˝raznÏjöÌ pro vÏtöÌ arm·dy)
+    // Dynamick√Ω r√°dius odhalen√≠ a z√°boru v c√≠li (v√Ωraznƒõj≈°√≠ pro vƒõt≈°√≠ arm√°dy)
     const arrivalRevealRadius = Math.max(7, 4 + Math.floor(Math.sqrt(exp.unitsLeft) / 2));
     const claimRadius = Math.max(1, Math.floor(Math.sqrt(exp.unitsLeft) / 2.5));
 
@@ -468,25 +469,25 @@ function handleExpeditionArrival(playerId, exp) {
 
     if (struct) {
         if (struct.ownerId === playerId) {
-            // PosÌlenÌ vlastnÌ budovy (zatÌm jen log)
-            logMessage(`Expedice #${exp.id} dorazila k vlastnÌ budovÏ ${struct.data.name}.`, 'info');
+            // Pos√≠len√≠ vlastn√≠ budovy (zat√≠m jen log)
+            logMessage(`Expedice #${exp.id} dorazila k vlastn√≠ budovƒõ ${struct.data.name}.`, 'info');
         } else {
             // Boj o budovu
             const defenderId = struct.ownerId;
             if (defenderId) {
-                // TODO: SkuteËn˝ souboj, zatÌm automatickÈ obsazenÌ
+                // TODO: Skuteƒçn√Ω souboj, zat√≠m automatick√© obsazen√≠
                 logMessage(`Expedice #${exp.id} dobyla ${struct.data.name} pro ${player.name} !`, 'win');
                 struct.ownerId = playerId;
                 struct.type = 'owned_' + struct.type.replace('visible_', '').replace('hidden_', '');
             } else {
-                // ObsazenÌ pr·zdnÈ budovy
-                logMessage(`Expedice #${exp.id} obsadila opuötÏn˝ ${struct.data.name}.`, 'win');
+                // Obsazen√≠ pr√°zdn√© budovy
+                logMessage(`Expedice #${exp.id} obsadila opu≈°tƒõnou ${struct.data.name}.`, 'win');
                 struct.ownerId = playerId;
                 struct.type = 'owned_' + struct.type.replace('visible_', '').replace('hidden_', '');
             }
         }
     } else {
-        // Pouze odhalujeme mapu, uû nezabÌr·me ˙zemÌ "flekem"
+        // Pouze odhalujeme mapu, u≈æ nezab√≠r√°me √∫zem√≠ "flekem"
         logMessage(`Expedice #${exp.id} dorazila na pozici [${tx}, ${ty}].`, 'info');
     }
 
@@ -529,7 +530,7 @@ function aiDecisionLoop() {
     }
 }
 
-// --- AKCE HR¡»E ---
+// --- AKCE HR√ÅƒåE ---
 
 export function handleCellClick(cell) {
     if (!cell) return;
@@ -547,7 +548,7 @@ export function showExpeditionMenu(playerId, targetX, targetY, event) {
     const units = Math.max(1, Math.ceil(player.units * (sliderPercent / 100)));
 
     const btn = document.createElement('button');
-    btn.textContent = `Vyslat expedici(${units} ??)`;
+    btn.textContent = `Vyslat expedici (${units} jednotek)`;
     btn.onclick = () => {
         launchExpedition(playerId, targetX, targetY, units);
         removeContextMenu();
@@ -563,7 +564,7 @@ export function showBuildMenu(playerId, x, y, event) {
         const def = C.BUILDINGS[type];
         if (!def) return;
         const btn = document.createElement('button');
-        btn.textContent = `Postavit ${def.name} (${def.cost.gold}??)`;
+        btn.textContent = `Postavit ${def.name} (${def.cost.gold} zlata)`;
         btn.onclick = () => {
             buildStructure(playerId, x, y, type);
             removeContextMenu();
@@ -580,7 +581,7 @@ export function showCaptureMenu(playerId, struct, event) {
     if (!player) return;
 
     const btn = document.createElement('button');
-    btn.textContent = `Obsadit ${struct.data.name} (${struct.data.cost}??)`;
+    btn.textContent = `Obsadit ${struct.data.name} (${struct.data.cost} zlata)`;
     btn.onclick = () => {
         captureStructure(playerId, struct.id);
         removeContextMenu();
@@ -594,19 +595,19 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = nu
     const player = gameState.players[playerId];
     if (!player || player.units < units) return;
 
-    // DynamickÈ urËenÌ startu - buÔ z parametru, nebo z hlavnÌ z·kladny hr·Ëe
+    // Dynamick√© urƒçen√≠ startu - buƒè z parametru, nebo z hlavn√≠ z√°kladny hr√°ƒçe
     let finalSourceX = sourceX;
     let finalSourceY = sourceY;
 
     if (finalSourceX === null || finalSourceY === null) {
-        // Hled·me z·kladnu podle ID hr·Ëe
+        // Hled√°me z√°kladnu podle ID hr√°ƒçe
         const base = Array.from(gameState.structures.values()).find(s => s.ownerId === playerId && s.type.includes('base'));
         if (base) {
             finalSourceX = base.x + Math.floor(base.w / 2);
             finalSourceY = base.y + Math.floor(base.h / 2);
         } else {
-            console.error(`[CRITICAL] Hr·Ë ${playerId} nem· na mapÏ û·dnou z·kladnu! Jednotky nevysl·ny.`);
-            logMessage("Nem˘ûeö vyslat jednotky, tvoje z·kladna byla zniËena nebo chybÌ!", 'error');
+            console.error(`[CRITICAL] Hr√°ƒç ${playerId} nem√° na mapƒõ ≈æ√°dnou z√°kladnu! Jednotky nevysl√°ny.`);
+            logMessage("Nem≈Ø≈æe≈° vyslat jednotky, tvoje z√°kladna byla zniƒçena nebo chyb√≠!", 'error');
             return;
         }
     }
@@ -627,11 +628,11 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = nu
     player.activeExpeditions.push(exp);
     updateExpeditionsPanel();
     updateUI();
-    logMessage(`Expedice #${exp.id} vysl·na na [${targetX}, ${targetY}] s ${units} jednotkami.`);
+    logMessage(`Expedice #${exp.id} vyslÔøΩna na [${targetX}, ${targetY}] s ${units} jednotkami.`);
 
     // MULTIPLAYER SYNC
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=169').then(m => {
+        import('../main.js?v=170').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -640,7 +641,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = nu
 export function setupMultiplayerSync() {
     if (!gameState.currentLobbyId) return;
 
-    // Tady musÌme poslouchat VäECHNY hr·Ëe aktivnÌ ve h¯e (kromÏ lok·lnÌho)
+    // Tady musÔøΩme poslouchat VÔøΩECHNY hrÔøΩÔøΩe aktivnÔøΩ ve hÔøΩe (kromÔøΩ lokÔøΩlnÔøΩho)
     Object.keys(gameState.players).forEach(otherPlayerId => {
         if (otherPlayerId === gameState.myPlayerId) return;
 
@@ -651,8 +652,8 @@ export function setupMultiplayerSync() {
 
             const otherPlayer = gameState.players[otherPlayerId];
             if (otherPlayer) {
-                // NamÌsto tvrdÈho smaz·nÌ a vynulov·nÌ "progressu" prov·dÌme merge:
-                // Zachov·me st·vajÌcÌ jednotky (a jejich fyzick˝ progress pohybu) a p¯id·me novÈ
+                // NamÔøΩsto tvrdÔøΩho smazÔøΩnÔøΩ a vynulovÔøΩnÔøΩ "progressu" provÔøΩdÔøΩme merge:
+                // ZachovÔøΩme stÔøΩvajÔøΩcÔøΩ jednotky (a jejich fyzickÔøΩ progress pohybu) a pÔøΩidÔøΩme novÔøΩ
                 const updatedExpeditions = [];
 
                 for (const id in data) {
@@ -660,14 +661,14 @@ export function setupMultiplayerSync() {
                     const existingExp = otherPlayer.activeExpeditions.find(e => e.id === remote.id);
 
                     if (existingExp) {
-                        // Aktualizace stavu uû existujÌcÌ jednotky
+                        // Aktualizace stavu uÔøΩ existujÔøΩcÔøΩ jednotky
                         existingExp.unitsLeft = remote.units;
                         existingExp.isRemote = true;
                         existingExp.targetX = remote.targetX;
                         existingExp.targetY = remote.targetY;
                         updatedExpeditions.push(existingExp);
                     } else {
-                        // Nov· expedice od nep¯Ìtele, kter· se pr·vÏ zrodila
+                        // NovÔøΩ expedice od nepÔøΩÔøΩtele, kterÔøΩ se prÔøΩvÔøΩ zrodila
                         updatedExpeditions.push({
                             id: remote.id,
                             startX: remote.startX,
@@ -688,15 +689,15 @@ export function setupMultiplayerSync() {
         });
     });
 
-    // 2. Sledov·nÌ cizÌch akcÌ (nap¯. obsazenÌ budov)
+    // 2. SledovÔøΩnÔøΩ cizÔøΩch akcÔøΩ (napÔøΩ. obsazenÔøΩ budov)
     const actionsRef = ref(db, `lobbies/${gameState.currentLobbyId}/actions`);
     onChildAdded(actionsRef, (snapshot) => {
         const action = snapshot.val();
         if (!action) return;
 
-        // CizÌ akce aplikujeme lok·lnÏ
+        // CizÔøΩ akce aplikujeme lokÔøΩlnÔøΩ
         if (action.playerId !== gameState.myPlayerId) {
-            console.log("[SYNC] P¯ijata cizÌ akce:", action);
+            console.log("[SYNC] PÔøΩijata cizÔøΩ akce:", action);
             if (action.type === 'capture') {
                 captureStructure(action.playerId, action.structureId, true);
             }
@@ -710,7 +711,7 @@ export function redirectExpedition(playerId, expId, targetX, targetY) {
     const exp = player.activeExpeditions.find(e => e.id === expId);
     if (!exp) return;
 
-    // Aktu·lnÌ pozice se st·v· nov˝m startem
+    // AktuÔøΩlnÔøΩ pozice se stÔøΩvÔøΩ novÔøΩm startem
     const curX = Math.round(exp.startX + (exp.targetX - exp.startX) * exp.progress);
     const curY = Math.round(exp.startY + (exp.targetY - exp.startY) * exp.progress);
 
@@ -723,11 +724,11 @@ export function redirectExpedition(playerId, expId, targetX, targetY) {
     exp.isHolding = false;
     gameState.needsRedraw = true;
 
-    logMessage(`Expedice #${exp.id} p¯esmÏrov·na na [${targetX}, ${targetY}].`);
+    logMessage(`Expedice #${exp.id} pÔøΩesmÔøΩrovÔøΩna na [${targetX}, ${targetY}].`);
 
-    // MULTIPLAYER SYNC PÿESMÃROV¡NÕ
+    // MULTIPLAYER SYNC PÔøΩESMÔøΩROVÔøΩNÔøΩ
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=169').then(m => {
+        import('../main.js?v=170').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -741,12 +742,12 @@ export function splitExpedition(playerId, expId, targetX, targetY, percent) {
 
     const splitUnits = Math.max(1, Math.floor(exp.unitsLeft * (percent / 100)));
     exp.unitsLeft -= splitUnits;
-    exp.initialUnits = exp.unitsLeft; // Reset vizu·lu pro zbytek
+    exp.initialUnits = exp.unitsLeft; // Reset vizuÔøΩlu pro zbytek
 
     const curX = Math.round(exp.startX + (exp.targetX - exp.startX) * exp.progress);
     const curY = Math.round(exp.startY + (exp.targetY - exp.startY) * exp.progress);
 
-    // Vytvo¯enÌ novÈ expedice z odötÏpen˝ch jednotek
+    // VytvoÔøΩenÔøΩ novÔøΩ expedice z odÔøΩtÔøΩpenÔøΩch jednotek
     const newExp = {
         id: ++player.expeditionCounter,
         startX: curX,
@@ -759,11 +760,11 @@ export function splitExpedition(playerId, expId, targetX, targetY, percent) {
         isHolding: false
     };
     player.activeExpeditions.push(newExp);
-    logMessage(`Expedice #${exp.id} rozdÏlena! Nov· expedice #${newExp.id} vysl·na s ${splitUnits} jednotkami.`);
+    logMessage(`Expedice #${exp.id} rozdÔøΩlena! NovÔøΩ expedice #${newExp.id} vyslÔøΩna s ${splitUnits} jednotkami.`);
 
-    // MULTIPLAYER SYNC ROZDÃLENÕ A ZMENäENÕ PŸVODNÕ
+    // MULTIPLAYER SYNC ROZDÔøΩLENÔøΩ A ZMENÔøΩENÔøΩ PÔøΩVODNÔøΩ
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=169').then(m => {
+        import('../main.js?v=170').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
             m.syncExpeditionToFirebase(playerId, newExp);
         });
@@ -777,13 +778,13 @@ export function gatherExpeditions(playerId, targetX, targetY) {
     const selectedIds = gameState.selectedExpeditionIds;
     if (selectedIds.length === 0) return;
 
-    // Tato funkce novÏ pouze nasmÏruje jednotky k sobÏ. 
-    // FyzickÈ slouËenÌ probÏhne plynule v gameTick (Merge Pass), aû se k sobÏ arm·dy p¯iblÌûÌ.
+    // Tato funkce novÔøΩ pouze nasmÔøΩruje jednotky k sobÔøΩ. 
+    // FyzickÔøΩ slouÔøΩenÔøΩ probÔøΩhne plynule v gameTick (Merge Pass), aÔøΩ se k sobÔøΩ armÔøΩdy pÔøΩiblÔøΩÔøΩ.
     selectedIds.forEach(id => {
         redirectExpedition(playerId, id, targetX, targetY);
     });
 
-    logMessage(`Vyd·n rozkaz ke sjednocenÌ u [${targetX}, ${targetY}].`, 'info');
+    logMessage(`VydÔøΩn rozkaz ke sjednocenÔøΩ u [${targetX}, ${targetY}].`, 'info');
 }
 
 export function buildStructure(playerId, x, y, type) {
@@ -815,7 +816,7 @@ export function captureStructure(playerId, structId, isRemoteAction = false) {
 
     // MULTIPLAYER SYNC ACTIONS
     if (!isRemoteAction && gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=169').then(m => {
+        import('../main.js?v=170').then(m => {
             m.syncActionToFirebase({
                 type: 'capture',
                 playerId: playerId,
