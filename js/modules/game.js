@@ -1,16 +1,16 @@
-console.log('[DEBUG] game.js loaded v=173');
+﻿console.log('[DEBUG] game.js loaded v=174');
 
-import * as C from './config.js?v=173';
-import { gameState, viewportState } from './state.js?v=173';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=173';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=173';
-import { gameLoop } from './renderer.js?v=173';
-import { runAIDecision } from './ai.js?v=173';
-import { Logger } from './logger.js?v=173';
+import * as C from './config.js?v=174';
+import { gameState, viewportState } from './state.js?v=174';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=174';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=174';
+import { gameLoop } from './renderer.js?v=174';
+import { runAIDecision } from './ai.js?v=174';
+import { Logger } from './logger.js?v=174';
 
 // --- MULTIPLAYER SYNC ---
 import { ref, push, set, onValue, onDisconnect, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { db } from '../firebase-config.js?v=173';
+import { db } from '../firebase-config.js?v=174';
 
 export async function initGame(hostStatus = false, playerId = 'local_player', lobbyId = null, playersData = null) {
     console.log(`[GAME] Inicializace hry v=172 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
@@ -174,8 +174,17 @@ async function syncWorldGeneration(resolve) {
 
                     // 2. Rekonstrukce budov
                     gameState.structures.clear();
-                    remoteStructures.forEach(s => {
-                        createStructure(s.type, s.x, s.y, s.w, s.h, s.data, s.ownerId, s.id);
+                    console.log(`[DEBUG] syncWorldGeneration: Rekonstruuji ${remoteStructures.length} budov ze serveru.`);
+
+                    remoteStructures.forEach((s, idx) => {
+                        // Musíme použít typ bez "owned_", protože createStructure si ho tam přidá, pokud má ownerId
+                        const cleanType = s.type.replace('owned_', '').replace('visible_', '').replace('hidden_', '');
+                        createStructure(cleanType, s.x, s.y, s.w, s.h, s.data, s.ownerId, s.id);
+
+                        if (s.type.includes('base')) {
+                            const isMine = (s.ownerId === gameState.myPlayerId);
+                            console.log(`[DEBUG]   [${idx}] Budova type=${s.type}, owner=${s.ownerId}, IS_MINE=${isMine}, pos=[${s.x},${s.y}]`);
+                        }
                     });
 
                     isResolvedWORLD = true;
@@ -199,7 +208,7 @@ function generateStructures() {
 
         if (basePos) {
             const baseSize = 6;
-            createStructure('base', basePos.x, basePos.y, baseSize, baseSize, { name: 'Hlavní stan - ' + p.name }, p.id);
+            createStructure('base', basePos.x, basePos.y, baseSize, baseSize, { name: 'Hlavní stan - ' + p.name, income: 10 }, p.id);
             console.log(`[DEBUG]   -> Základna vytvořena pro ${p.id}`);
         } else {
             console.error(`[CRITICAL] Pro hráče ${p.id} s indexem ${p.index} nebyla nalezena startovní pozice!`);
@@ -263,7 +272,7 @@ function finishInit(resolveCallback) {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové říši! Verze 173 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
+    logMessage(`Vítej v Pixelové říši! Verze 174 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
@@ -273,7 +282,7 @@ function finishInit(resolveCallback) {
     window.showScreen('game-ui');
 
     // Zapojení vstupních listenerů (mouse/keyboard events)
-    import('../main.js?v=173').then(m => {
+    import('../main.js?v=174').then(m => {
         if (window.attachEventListeners) window.attachEventListeners(); // v main.js attach fn wrapper
     });
 
@@ -461,7 +470,7 @@ function removeExpedition(playerId, expId) {
 
         // MULTIPLAYER SYNC: Pouze majitel maže z Firebase!
         if (playerId === gameState.myPlayerId && gameState.currentLobbyId) {
-            import('../main.js?v=173').then(m => {
+            import('../main.js?v=174').then(m => {
                 m.removeFromFirebase(`lobbies/${gameState.currentLobbyId}/expeditions/${playerId}/${expId}`);
             });
         }
@@ -667,7 +676,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = nu
 
     // MULTIPLAYER SYNC
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=173').then(m => {
+        import('../main.js?v=174').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -771,7 +780,7 @@ export function redirectExpedition(playerId, expId, targetX, targetY) {
 
     // MULTIPLAYER SYNC P�ESM�ROV�N�
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=173').then(m => {
+        import('../main.js?v=174').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -807,7 +816,7 @@ export function splitExpedition(playerId, expId, targetX, targetY, percent) {
 
     // MULTIPLAYER SYNC ROZD�LEN� A ZMEN�EN� P�VODN�
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=173').then(m => {
+        import('../main.js?v=174').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
             m.syncExpeditionToFirebase(playerId, newExp);
         });
@@ -859,7 +868,7 @@ export function captureStructure(playerId, structId, isRemoteAction = false) {
 
     // MULTIPLAYER SYNC ACTIONS
     if (!isRemoteAction && gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=173').then(m => {
+        import('../main.js?v=174').then(m => {
             m.syncActionToFirebase({
                 type: 'capture',
                 playerId: playerId,
