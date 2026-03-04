@@ -3,8 +3,8 @@
 
 console.log('[DEBUG] ui.js loaded v=163');
 
-import * as C from './config.js?v=170';
-import { gameState } from './state.js?v=170';
+import * as C from './config.js?v=171';
+import { gameState } from './state.js?v=171';
 
 function getEl(id) {
     const el = document.getElementById(id);
