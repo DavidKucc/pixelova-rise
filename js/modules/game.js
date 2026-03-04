@@ -1,16 +1,16 @@
-﻿console.log('[DEBUG] game.js loaded v=172');
+console.log('[DEBUG] game.js loaded v=173');
 
-import * as C from './config.js?v=172';
-import { gameState, viewportState } from './state.js?v=172';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=172';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=172';
-import { gameLoop } from './renderer.js?v=172';
-import { runAIDecision } from './ai.js?v=172';
-import { Logger } from './logger.js?v=172';
+import * as C from './config.js?v=173';
+import { gameState, viewportState } from './state.js?v=173';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=173';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=173';
+import { gameLoop } from './renderer.js?v=173';
+import { runAIDecision } from './ai.js?v=173';
+import { Logger } from './logger.js?v=173';
 
 // --- MULTIPLAYER SYNC ---
 import { ref, push, set, onValue, onDisconnect, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { db } from '../firebase-config.js?v=172';
+import { db } from '../firebase-config.js?v=173';
 
 export async function initGame(hostStatus = false, playerId = 'local_player', lobbyId = null, playersData = null) {
     console.log(`[GAME] Inicializace hry v=172 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
@@ -263,7 +263,7 @@ function finishInit(resolveCallback) {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové říši! Verze 172 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
+    logMessage(`Vítej v Pixelové říši! Verze 173 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
@@ -273,7 +273,7 @@ function finishInit(resolveCallback) {
     window.showScreen('game-ui');
 
     // Zapojení vstupních listenerů (mouse/keyboard events)
-    import('../main.js?v=172').then(m => {
+    import('../main.js?v=173').then(m => {
         if (window.attachEventListeners) window.attachEventListeners(); // v main.js attach fn wrapper
     });
 
@@ -324,9 +324,15 @@ export function physicsLoop(timestamp) {
             if (!exp.arrived) {
                 const dist = Math.hypot(exp.targetX - exp.startX, exp.targetY - exp.startY);
 
-                // Konstantní rychlost přepočtená posunutí o Delta Time snímků vykreslovacích monitorů
-                const progressDelta = dist > 0 ? ((C.EXPEDITION_SPEED * dt) / dist) : 1;
-                exp.progress += progressDelta;
+                if (exp.isRemote && exp.startTime && exp.duration) {
+                    // SYNCHRONIZOVANÝ POHYB: Progress počítáme z reálného času
+                    const elapsed = Date.now() - exp.startTime;
+                    exp.progress = Math.min(1, elapsed / exp.duration);
+                } else {
+                    // LOKÁLNÍ POHYB (nebo fallback): Klasický dt přírůstek
+                    const progressDelta = dist > 0 ? ((C.EXPEDITION_SPEED * dt) / dist) : 1;
+                    exp.progress += progressDelta;
+                }
 
                 if (exp.progress >= 1) {
                     exp.progress = 1;
@@ -452,7 +458,15 @@ function removeExpedition(playerId, expId) {
     const player = gameState.players[playerId];
     if (player) {
         player.activeExpeditions = player.activeExpeditions.filter(e => e.id !== expId);
-        logMessage(`Expedice #${expId} byla zničena v boji.`, 'error');
+
+        // MULTIPLAYER SYNC: Pouze majitel maže z Firebase!
+        if (playerId === gameState.myPlayerId && gameState.currentLobbyId) {
+            import('../main.js?v=173').then(m => {
+                m.removeFromFirebase(`lobbies/${gameState.currentLobbyId}/expeditions/${playerId}/${expId}`);
+            });
+        }
+
+        logMessage(`Expedice #${expId} dorazila nebo byla zničena.`, 'info');
     }
 }
 
@@ -629,6 +643,9 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = nu
     }
 
     player.units -= units;
+    const dist = Math.hypot(targetX - finalSourceX, targetY - finalSourceY);
+    const duration = (dist / C.EXPEDITION_SPEED) * 1000; // ms
+
     const exp = {
         id: ++player.expeditionCounter,
         startX: finalSourceX,
@@ -638,6 +655,8 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = nu
         unitsLeft: units,
         initialUnits: units,
         progress: 0,
+        startTime: Date.now(),
+        duration: duration,
         isHolding: false,
         arrived: false
     };
@@ -648,7 +667,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = nu
 
     // MULTIPLAYER SYNC
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=172').then(m => {
+        import('../main.js?v=173').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -694,6 +713,8 @@ export function setupMultiplayerSync() {
                             initialUnits: remote.units,
                             unitsLeft: remote.units,
                             progress: 0,
+                            startTime: remote.startTime,
+                            duration: remote.duration,
                             arrived: false,
                             isRemote: true
                         });
@@ -738,13 +759,19 @@ export function redirectExpedition(playerId, expId, targetX, targetY) {
     exp.progress = 0;
     exp.arrived = false;
     exp.isHolding = false;
+
+    // Přepočet času pro synchronizaci k pohybu
+    const newDist = Math.hypot(targetX - curX, targetY - curY);
+    exp.duration = (newDist / C.EXPEDITION_SPEED) * 1000;
+    exp.startTime = Date.now();
+
     gameState.needsRedraw = true;
 
     logMessage(`Expedice #${exp.id} p�esm�rov�na na [${targetX}, ${targetY}].`);
 
     // MULTIPLAYER SYNC P�ESM�ROV�N�
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=172').then(m => {
+        import('../main.js?v=173').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -780,7 +807,7 @@ export function splitExpedition(playerId, expId, targetX, targetY, percent) {
 
     // MULTIPLAYER SYNC ROZD�LEN� A ZMEN�EN� P�VODN�
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=172').then(m => {
+        import('../main.js?v=173').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
             m.syncExpeditionToFirebase(playerId, newExp);
         });
@@ -832,7 +859,7 @@ export function captureStructure(playerId, structId, isRemoteAction = false) {
 
     // MULTIPLAYER SYNC ACTIONS
     if (!isRemoteAction && gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=172').then(m => {
+        import('../main.js?v=173').then(m => {
             m.syncActionToFirebase({
                 type: 'capture',
                 playerId: playerId,

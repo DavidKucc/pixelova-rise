@@ -1,11 +1,11 @@
-import { db } from './firebase-config.js?v=172';
+import { db } from './firebase-config.js?v=173';
 import { ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { initGame } from './modules/game.js?v=172';
-import { attachEventListeners } from './modules/input.js?v=172';
+import { initGame } from './modules/game.js?v=173';
+import { attachEventListeners } from './modules/input.js?v=173';
 
 window.attachEventListeners = attachEventListeners;
 
-import { gameState } from './modules/state.js?v=172';
+import { gameState } from './modules/state.js?v=173';
 
 export let playerFirebaseRef = null;
 
@@ -355,6 +355,11 @@ window.onerror = function (msg, url, line) {
     return false;
 };
 // --- SYNCHRONIZAČNÍ EXPORTY ---
+export function removeFromFirebase(path) {
+    if (!db || !path) return;
+    remove(ref(db, path)).catch(err => console.error(`[SYNC] Chyba při mazání z FB (${path}):`, err));
+}
+
 export function syncExpeditionToFirebase(playerId, exp) {
     if (!gameState.currentLobbyId || !exp) return;
     const expeditionsRef = ref(db, `lobbies/${gameState.currentLobbyId}/expeditions/${playerId}/${exp.id}`);
@@ -365,6 +370,8 @@ export function syncExpeditionToFirebase(playerId, exp) {
         targetX: exp.targetX,
         targetY: exp.targetY,
         units: exp.unitsLeft,
+        startTime: exp.startTime || Date.now(),
+        duration: exp.duration || 0,
         timestamp: Date.now()
     });
 }
