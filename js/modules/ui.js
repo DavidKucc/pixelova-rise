@@ -1,10 +1,10 @@
 // js/modules/ui.js
 // Zodpovídá za veškerou interakci s DOM elementy (vše mimo Canvas).
 
-console.log('[DEBUG] ui.js loaded v=178');
+console.log('[DEBUG] ui.js loaded v=179');
 
-import * as C from './config.js?v=178';
-import { gameState } from './state.js?v=178';
+import * as C from './config.js?v=179';
+import { gameState } from './state.js?v=179';
 
 function getEl(id) {
     const el = document.getElementById(id);
@@ -108,8 +108,12 @@ export function updateActionPanel() {
     const isOwned = struct.type.startsWith('owned_');
     const player = gameState.players[gameState.myPlayerId];
     if (!isOwned && player) {
-        const canAfford = player.gold >= struct.data.cost;
-        html += `<button onclick="captureStructure('${gameState.myPlayerId}', ${struct.id})" ${!canAfford ? 'disabled' : ''}>Obsadit (${struct.data.cost}💰)</button>`;
+        if (struct.type.includes('mine')) {
+            html += `<p style="color:#ffb74d; font-size:0.85em; margin-top:5px;">ℹ️ Tento důl musíš aktivovat přiblížením jednotky!</p>`;
+        } else {
+            const canAfford = player.gold >= struct.data.cost;
+            html += `<button onclick="captureStructure('${gameState.myPlayerId}', ${struct.id})" ${!canAfford ? 'disabled' : ''}>Obsadit (${struct.data.cost}💰)</button>`;
+        }
     }
     panel.innerHTML = html;
 }

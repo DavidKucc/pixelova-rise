@@ -1,16 +1,16 @@
-console.log('[DEBUG] game.js loaded v=178');
+console.log('[DEBUG] game.js loaded v=179');
 
-import * as C from './config.js?v=178';
-import { gameState, viewportState } from './state.js?v=178';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=178';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure } from './utils.js?v=178';
-import { gameLoop } from './renderer.js?v=178';
-import { runAIDecision } from './ai.js?v=178';
-import { Logger } from './logger.js?v=178';
+import * as C from './config.js?v=179';
+import { gameState, viewportState } from './state.js?v=179';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=179';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure, findPath } from './utils.js?v=179';
+import { gameLoop } from './renderer.js?v=179';
+import { runAIDecision } from './ai.js?v=179';
+import { Logger } from './logger.js?v=179';
 
 // --- MULTIPLAYER SYNC ---
 import { ref, push, set, onValue, onDisconnect, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { db } from '../firebase-config.js?v=178';
+import { db } from '../firebase-config.js?v=179';
 
 export async function initGame(hostStatus = false, playerId = 'local_player', lobbyId = null, playersData = null) {
     console.log(`[GAME] Inicializace hry v=172 (Role: ${hostStatus ? 'Host' : 'Client'}, ID: ${playerId})...`);
@@ -272,7 +272,7 @@ function finishInit(resolveCallback) {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové říši! Verze 178 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
+    logMessage(`Vítej v Pixelové říši! Verze 179 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
@@ -282,7 +282,7 @@ function finishInit(resolveCallback) {
     window.showScreen('game-ui');
 
     // Zapojení vstupních listenerů (mouse/keyboard events)
-    import('../main.js?v=178').then(m => {
+    import('../main.js?v=179').then(m => {
         if (window.attachEventListeners) window.attachEventListeners(); // v main.js attach fn wrapper
     });
 
@@ -358,8 +358,8 @@ export function physicsLoop(timestamp) {
                     }
 
                     if (isClose) {
-                        // AKTIVACE DOLU!
-                        captureStructure(playerId, s.id, false); // Tím se stane majitelem
+                        // AKTIVACE DOLU! (v179: isProximity=true)
+                        captureStructure(playerId, s.id, false, true);
                     }
                 });
             }
@@ -396,13 +396,27 @@ export function physicsLoop(timestamp) {
             }
 
             if (!exp.arrived) {
+                const prevX = exp.startX + (exp.targetX - exp.startX) * (exp.progress - (C.EXPEDITION_SPEED * dt / dist));
+                const prevY = exp.startY + (exp.targetY - exp.startY) * (exp.progress - (C.EXPEDITION_SPEED * dt / dist));
+
                 const curX = exp.startX + (exp.targetX - exp.startX) * exp.progress;
                 const curY = exp.startY + (exp.targetY - exp.startY) * exp.progress;
 
-                // FOG OF WAR: Lokální odhaluje mapu pouze moje vlastní expedice!
+                // FOG OF WAR: Lokální odhaluje mapu pouze moje vlastní expedice! (INTERPOLACE PRO v179)
                 if (playerId === gameState.myPlayerId) {
                     const moveRevealRadius = Math.max(5, 2 + Math.floor(Math.sqrt(exp.unitsLeft) / 2));
-                    revealMapAround(Math.round(curX), Math.round(curY), moveRevealRadius, playerId);
+                    // Pokud je skok velký (např. při background tabu), odhalíme i body na cestě
+                    const stepDist = Math.hypot(curX - prevX, curY - prevY);
+                    if (stepDist > 1.0) {
+                        const steps = Math.ceil(stepDist);
+                        for (let s = 1; s <= steps; s++) {
+                            const interX = prevX + (curX - prevX) * (s / steps);
+                            const interY = prevY + (curY - prevY) * (s / steps);
+                            revealMapAround(Math.round(interX), Math.round(interY), moveRevealRadius, playerId);
+                        }
+                    } else {
+                        revealMapAround(Math.round(curX), Math.round(curY), moveRevealRadius, playerId);
+                    }
                 }
                 movedAny = true;
             }
@@ -426,8 +440,8 @@ function updateWorkers(dt) {
     const effectiveDt = Math.min(dt, MAX_DT);
 
     gameState.structures.forEach(s => {
-        // v178: Dělníci jsou pouze pro doly.
-        if (s.ownerId && s.type.includes('mine')) {
+        // v179: Dělníci jsou pouze pro doly a POUZE pro mé vlastní doly (aby je neviděli jiní hráči)
+        if (s.ownerId === gameState.myPlayerId && s.type.includes('mine')) {
             if (!s.workerTimer) s.workerTimer = 0;
             s.workerTimer += dt; // Zde používáme plné dt pro catch-up
 
@@ -441,40 +455,50 @@ function updateWorkers(dt) {
         }
     });
 
-    // 2. Pohyb dělníků
+    // 2. Pohyb dělníků (v179 s podporou cest)
     for (let i = gameState.workers.length - 1; i >= 0; i--) {
         const w = gameState.workers[i];
-        const dist = Math.hypot(w.targetX - w.startX, w.targetY - w.startY);
-        if (dist > 0) {
-            w.progress += (C.WORKER_SPEED * effectiveDt) / dist;
-        } else {
-            w.progress = 1;
-        }
 
-        if (w.progress >= 1) {
+        if (w.path && w.path.length > 1) {
+            const nextPoint = w.path[1];
+            const dist = Math.hypot(nextPoint.x - w.startX, nextPoint.y - w.startY);
+            if (dist > 0) {
+                w.progress += (C.WORKER_SPEED * effectiveDt) / dist;
+            } else {
+                w.progress = 1;
+            }
+
+            if (w.progress >= 1) {
+                w.startX = nextPoint.x;
+                w.startY = nextPoint.y;
+                w.path.shift(); // Odstranit dosažený bod
+                w.progress = 0;
+            }
+        } else {
+            // Cesta skončila -> Doručení nebo smazání
             if (!w.isReturning) {
                 // DORUČENÍ NÁKLADU DO HRADU (v177)
-                if (w.ownerId === gameState.myPlayerId) {
-                    const player = gameState.players[w.ownerId];
-                    if (player) {
-                        // Výplata: 15 zlata (mine income) * 3s (spawn interval) = 45 zlata per worker?
-                        // Nebo prostě fixní částka za jednu donášku.
-                        const amount = w.type === 'crystal' ? 5 : 15;
-                        if (w.type === 'crystal') player.crystals += amount;
-                        else player.gold += amount;
-
-                        // Synchronizace do Firebase (jen pro majitele)
-                        if (window.syncPlayerState) window.syncPlayerState();
-                        if (window.updateUI) window.updateUI();
-                    }
+                const player = gameState.players[w.ownerId];
+                if (player && w.ownerId === gameState.myPlayerId) {
+                    const amount = w.type === 'crystal' ? 5 : 15;
+                    if (w.type === 'crystal') player.crystals += amount;
+                    else player.gold += amount;
+                    if (window.syncPlayerState) window.syncPlayerState();
+                    if (window.updateUI) window.updateUI();
                 }
 
-                // Došel k hradu -> vyložit a zpět
+                // Došel k hradu -> zpět k dolu
                 w.isReturning = true;
-                w.progress = 0;
-                const tmpX = w.startX; const tmpY = w.startY;
-                w.startX = w.targetX; w.startY = w.targetY;
-                w.targetX = tmpX; w.targetY = tmpY;
+                const mine = gameState.structures.get(w.mineId);
+                if (mine) {
+                    const mineX = mine.x + mine.w / 2;
+                    const mineY = mine.y + mine.h / 2;
+                    // Najít cestu ZPĚT k dolu (v179)
+                    w.path = findPath(w.startX, w.startY, mineX, mineY, w.ownerId);
+                    w.progress = 0;
+                } else {
+                    gameState.workers.splice(i, 1);
+                }
             } else {
                 // Vrátil se do dolu -> zmizet
                 gameState.workers.splice(i, 1);
@@ -489,20 +513,21 @@ function spawnWorker(mine) {
     if (!base) return;
 
     // CÍLENÍ NA OKRAJ HRADU (v177)
-    // Hrad je s.w x s.h (např. 6x6). Dělník jde z dolu k nejbližšímu okraji.
     const mineCenter = { x: mine.x + mine.w / 2, y: mine.y + mine.h / 2 };
-
-    // Nejbližší bod na obdelníku základny
     const targetX = Math.max(base.x, Math.min(mineCenter.x, base.x + base.w));
     const targetY = Math.max(base.y, Math.min(mineCenter.y, base.y + base.h));
 
+    // v179: Hledání bezpečné cesty (nekráčí tmou)
+    const path = findPath(mineCenter.x, mineCenter.y, targetX, targetY, ownerId);
+    if (!path) return; // Nenašel cestu (skrze objevenou mapu) -> dělník nevyběhne
+
     gameState.workers.push({
         ownerId,
+        mineId: mine.id, // v179: Aby věděl kam se vrátit
         type: mine.type.includes('crystal') ? 'crystal' : 'gold',
         startX: mineCenter.x,
         startY: mineCenter.y,
-        targetX,
-        targetY,
+        path: path,
         progress: 0,
         isReturning: false,
         pulseOffset: Math.random() * Math.PI * 2
@@ -575,6 +600,16 @@ function handleCombatBetweenExpeditions(p1Id) {
                     if (e1.unitsLeft <= 0) removeExpedition(p1Id, e1.id);
                     if (e2.unitsLeft <= 0) removeExpedition(p2Id, e2.id);
 
+                    // MULTIPLAYER SYNC: Po každém zásahu v boji (synchronizujeme jen své jednotky)
+                    if (gameState.currentLobbyId) {
+                        if (p1Id === gameState.myPlayerId) {
+                            import('../main.js?v=179').then(m => m.syncExpeditionToFirebase(p1Id, e1));
+                        }
+                        if (p2Id === gameState.myPlayerId) {
+                            import('../main.js?v=179').then(m => m.syncExpeditionToFirebase(p2Id, e2));
+                        }
+                    }
+
                     gameState.needsRedraw = true;
                 }
             });
@@ -600,7 +635,7 @@ function removeExpedition(playerId, expId) {
 
         // MULTIPLAYER SYNC: Pouze majitel maže z Firebase!
         if (playerId === gameState.myPlayerId && gameState.currentLobbyId) {
-            import('../main.js?v=178').then(m => {
+            import('../main.js?v=179').then(m => {
                 m.removeFromFirebase(`lobbies/${gameState.currentLobbyId}/expeditions/${playerId}/${expId}`);
             });
         }
@@ -806,7 +841,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = nu
 
     // MULTIPLAYER SYNC
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=178').then(m => {
+        import('../main.js?v=179').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -910,7 +945,7 @@ export function redirectExpedition(playerId, expId, targetX, targetY) {
 
     // MULTIPLAYER SYNC P�ESM�ROV�N�
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=178').then(m => {
+        import('../main.js?v=179').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -946,7 +981,7 @@ export function splitExpedition(playerId, expId, targetX, targetY, percent) {
 
     // MULTIPLAYER SYNC ROZD�LEN� A ZMEN�EN� P�VODN�
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=178').then(m => {
+        import('../main.js?v=179').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
             m.syncExpeditionToFirebase(playerId, newExp);
         });
@@ -979,10 +1014,18 @@ export function buildStructure(playerId, x, y, type) {
     updateUI();
 }
 
-export function captureStructure(playerId, structId, isRemoteAction = false) {
+export function captureStructure(playerId, structId, isRemoteAction = false, isProximity = false) {
     const struct = gameState.structures.get(structId);
     const player = gameState.players[playerId];
-    if (!struct || !player || player.gold < (struct.data.cost || 0)) return;
+    if (!struct || !player) return;
+
+    // v179: Doly se nesmí dát "koupit" přes UI (Double-click/Context menu/Panel). Pouze blízkostí.
+    if (struct.type.includes('mine') && !isProximity && !isRemoteAction) {
+        logMessage(`Tento důl musíš aktivovat přiblížením jednotky!`, 'warn');
+        return;
+    }
+
+    if (player.gold < (struct.data.cost || 0)) return;
 
     player.gold -= (struct.data.cost || 0);
     struct.ownerId = playerId;
@@ -998,7 +1041,7 @@ export function captureStructure(playerId, structId, isRemoteAction = false) {
 
     // MULTIPLAYER SYNC ACTIONS
     if (!isRemoteAction && gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=178').then(m => {
+        import('../main.js?v=179').then(m => {
             m.syncActionToFirebase({
                 type: 'capture',
                 playerId: playerId,

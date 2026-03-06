@@ -1,8 +1,8 @@
-console.log('[DEBUG] renderer.js loaded v=178');
+console.log('[DEBUG] renderer.js loaded v=179');
 
-import { ui } from './ui.js?v=178';
-import { gameState, viewportState } from './state.js?v=178';
-import * as C from './config.js?v=178';
+import { ui } from './ui.js?v=179';
+import { gameState, viewportState } from './state.js?v=179';
+import * as C from './config.js?v=179';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 export function gameLoop() {
@@ -143,12 +143,16 @@ function drawWorkers(ctx) {
     const time = performance.now() / 1000;
 
     gameState.workers.forEach(w => {
-        const curX = w.startX + (w.targetX - w.startX) * w.progress;
-        const curY = w.startY + (w.targetY - w.startY) * w.progress;
+        // v179: Cílový bod pro aktuální úsek cesty
+        const targetX = (w.path && w.path.length > 1) ? w.path[1].x : w.startX;
+        const targetY = (w.path && w.path.length > 1) ? w.path[1].y : w.startY;
+
+        const curX = w.startX + (targetX - w.startX) * w.progress;
+        const curY = w.startY + (targetY - w.startY) * w.progress;
 
         const screenX = curX * fullCellSize;
         const screenY = curY * fullCellSize;
-        const size = CELL_SIZE * C.WORKER_SIZE_RATIO;
+        const size = (CELL_SIZE + GAP_SIZE) * C.WORKER_SIZE_RATIO;
 
         const owner = gameState.players[w.ownerId];
         if (!owner) return;

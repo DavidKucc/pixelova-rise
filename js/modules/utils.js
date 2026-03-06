@@ -1,9 +1,9 @@
 // js/modules/utils.js
 // Pomocné, znovupoužitelné funkce, které nejsou přímo vázané na herní logiku.
-console.log('[DEBUG] utils.js loaded v=178');
+console.log('[DEBUG] utils.js loaded v=179');
 
-import * as C from './config.js?v=178';
-import { gameState } from './state.js?v=178';
+import * as C from './config.js?v=179';
+import { gameState } from './state.js?v=179';
 
 export function getNeighbors(x, y) {
     const n = [];
@@ -71,4 +71,81 @@ export function placeRandomStructure(type, size, data) {
         }
         attempts++;
     }
+}
+
+// v179: Jednoduchý A* pro dělníky (nekráčí tmou)
+export function findPath(sx, sy, tx, ty, playerId) {
+    sx = Math.round(sx); sy = Math.round(sy);
+    tx = Math.round(tx); ty = Math.round(ty);
+
+    if (sx === tx && sy === ty) return [{ x: tx, y: ty }];
+
+    const openSet = [{ x: sx, y: sy, g: 0, f: Math.hypot(tx - sx, ty - sy), parent: null }];
+    const closedSet = new Set();
+    const openSetMap = new Map(); // Pro rychlé hledání
+    openSetMap.set(`${sx},${sy}`, openSet[0]);
+
+    let iterations = 0;
+    const MAX_ITERATIONS = 1000; // Ochrana výkonu
+
+    while (openSet.length > 0 && iterations < MAX_ITERATIONS) {
+        iterations++;
+        // Najít uzel s nejnižším F
+        let currentIndex = 0;
+        for (let i = 1; i < openSet.length; i++) {
+            if (openSet[i].f < openSet[currentIndex].f) currentIndex = i;
+        }
+        const current = openSet.splice(currentIndex, 1)[0];
+        openSetMap.delete(`${current.x},${current.y}`);
+        closedSet.add(`${current.x},${current.y}`);
+
+        // Cíl nalezen
+        if (Math.hypot(current.x - tx, current.y - ty) < 1.5) {
+            const path = [];
+            let temp = current;
+            while (temp) {
+                path.push({ x: temp.x, y: temp.y });
+                temp = temp.parent;
+            }
+            return path.reverse();
+        }
+
+        // Sousedé (4-směrní pro jednoduchost a rychlost)
+        const neighbors = [
+            { x: current.x + 1, y: current.y }, { x: current.x - 1, y: current.y },
+            { x: current.x, y: current.y + 1 }, { x: current.x, y: current.y - 1 }
+        ];
+
+        for (const neighbor of neighbors) {
+            if (neighbor.x < 0 || neighbor.x >= C.GRID_SIZE || neighbor.y < 0 || neighbor.y >= C.GRID_SIZE) continue;
+            if (closedSet.has(`${neighbor.x},${neighbor.y}`)) continue;
+
+            const cell = gameState.gameBoard[neighbor.y][neighbor.x];
+            // PODMÍNKA v179: Pouze objevená mapa (nebo vlastní území)
+            if (!cell.visibleTo.includes(playerId)) continue;
+
+            const gScore = current.g + 1;
+            let neighborNode = openSetMap.get(`${neighbor.x},${neighbor.y}`);
+
+            if (!neighborNode) {
+                neighborNode = {
+                    x: neighbor.x,
+                    y: neighbor.y,
+                    g: gScore,
+                    f: gScore + Math.hypot(tx - neighbor.x, ty - neighbor.y),
+                    parent: current
+                };
+                openSet.push(neighborNode);
+                openSetMap.set(`${neighbor.x},${neighbor.y}`, neighborNode);
+            } else if (gScore < neighborNode.g) {
+                neighborNode.g = gScore;
+                neighborNode.f = gScore + Math.hypot(tx - neighbor.x, ty - neighbor.y);
+                neighborNode.parent = current;
+            }
+        }
+    }
+
+    // Fallback: Pokud cesta nenalezena (např. v179 gap), vrátíme aspoň přímou linku k cíli
+    // ale v179 požadavek je "go around", takže pokud to nejde, dělník aspoň počká na další pokus.
+    return iterations >= MAX_ITERATIONS ? null : [{ x: tx, y: ty }];
 }
