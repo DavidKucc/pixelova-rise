@@ -1,12 +1,12 @@
 // js/modules/input.js
 // Zpracování vstupů od uživatele (myš, zoom, kliknutí).
-console.log('[INPUT] input.js loaded v=177');
+console.log('[INPUT] input.js loaded v=178');
 
-import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=177';
-import { viewportState, gameState } from './state.js?v=177';
-import * as C from './config.js?v=177';
-import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition } from './game.js?v=177';
-import { updateUI } from './ui.js?v=177';
+import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=178';
+import { viewportState, gameState } from './state.js?v=178';
+import * as C from './config.js?v=178';
+import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition } from './game.js?v=178';
+import { updateUI } from './ui.js?v=178';
 
 // Stav klávesy Q
 let isQPressed = false;
@@ -58,7 +58,12 @@ function onMouseDown(e) {
 
             if (struct && struct.ownerId !== gameState.myPlayerId) {
                 // LEVÝ DVOJKLIK: Okamžité obsazení/nákup budovy!
-                captureStructure(gameState.myPlayerId, struct.id);
+                // v178: Doly nesmí jít označit/koupit dvojklikem (jen aktivací blízkostí)
+                if (struct.type.includes('mine')) {
+                    logMessage("Důl musíš aktivovat přiblížením jednotky!", "warn");
+                } else {
+                    captureStructure(gameState.myPlayerId, struct.id);
+                }
                 gameState.selectionBox.active = false;
                 isPanning = false;
                 viewportState.didDrag = false;
