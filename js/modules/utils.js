@@ -1,9 +1,9 @@
 // js/modules/utils.js
 // Pomocné, znovupoužitelné funkce, které nejsou přímo vázané na herní logiku.
-console.log('[DEBUG] utils.js loaded v=189');
+console.log('[DEBUG] utils.js loaded v=190');
 
-import * as C from './config.js?v=189';
-import { gameState } from './state.js?v=189';
+import * as C from './config.js?v=190';
+import { gameState } from './state.js?v=190';
 
 export function getNeighbors(x, y) {
     const n = [];

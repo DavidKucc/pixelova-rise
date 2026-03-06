@@ -1,5 +1,5 @@
 // js/modules/state.js
-console.log('[DEBUG] state.js loaded v=189');
+console.log('[DEBUG] state.js loaded v=190');
 // Exportuje objekty, které drží veškerý měnitelný stav hry.
 
 export const gameState = {
@@ -7,6 +7,7 @@ export const gameState = {
     isHost: false,
     myPlayerId: 'human',
     currentLobbyId: null,
+    serverTimeOffset: 0, // v190: Rozdíl mezi lokálním časem a Firebase časem
     players: {},
 
     // Herní deska zůstává, ale buňky budou mít 'ownerId' místo 'state'

@@ -1,10 +1,10 @@
 // js/modules/ui.js
 // Zodpovídá za veškerou interakci s DOM elementy (vše mimo Canvas).
 
-console.log('[DEBUG] ui.js loaded v=189');
+console.log('[DEBUG] ui.js loaded v=190');
 
-import * as C from './config.js?v=189';
-import { gameState } from './state.js?v=189';
+import * as C from './config.js?v=190';
+import { gameState } from './state.js?v=190';
 
 function getEl(id) {
     const el = document.getElementById(id);
@@ -90,7 +90,7 @@ export function updateExpeditionsPanel() {
         const item = document.createElement('div');
         item.className = 'expedition-item';
         const progressPercent = exp.progress * 100;
-        item.innerHTML = `<span>Expedice #${exp.id} (${exp.unitsLeft}/${exp.initialUnits} ⚔️)</span><div class="expedition-progress-bar"><div class="expedition-progress" style="width: ${progressPercent}%;"></div></div>`;
+        item.innerHTML = `<span>Expedice #${exp.id} (${Math.round(exp.unitsLeft)}/${exp.initialUnits} ⚔️)</span><div class="expedition-progress-bar"><div class="expedition-progress" style="width: ${progressPercent}%;"></div></div>`;
         list.appendChild(item);
     });
 }

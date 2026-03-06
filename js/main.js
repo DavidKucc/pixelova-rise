@@ -1,11 +1,11 @@
-import { db } from './firebase-config.js?v=189';
+import { db } from './firebase-config.js?v=190';
 import { ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { initGame } from './modules/game.js?v=189';
-import { attachEventListeners } from './modules/input.js?v=189';
+import { initGame } from './modules/game.js?v=190';
+import { attachEventListeners } from './modules/input.js?v=190';
 
 window.attachEventListeners = attachEventListeners;
 
-import { gameState } from './modules/state.js?v=189';
+import { gameState } from './modules/state.js?v=190';
 
 export let playerFirebaseRef = null;
 
@@ -97,6 +97,13 @@ function joinFirebaseLobby(nickname) {
     }
 
     const lobbyPlayersRef = ref(db, `lobbies/${gameState.currentLobbyId}/players`);
+
+    // v190: Synchronizace času s Firebase
+    const offsetRef = ref(db, ".info/serverTimeOffset");
+    onValue(offsetRef, (snap) => {
+        gameState.serverTimeOffset = snap.val() || 0;
+        console.log(`[SYNC] Server time offset: ${gameState.serverTimeOffset}ms`);
+    });
 
     // Přidat sebe do seznamu
     playerFirebaseRef = push(lobbyPlayersRef);
@@ -388,10 +395,10 @@ export function syncExpeditionToFirebase(playerId, exp) {
         targetX: exp.targetX,
         targetY: exp.targetY,
         units: exp.unitsLeft,
-        startTime: exp.startTime || Date.now(),
+        startTime: exp.startTime || (Date.now() + gameState.serverTimeOffset),
         duration: exp.duration || 0,
         isHolding: exp.isHolding || false, // v186: Synchronizace stavu Hold
-        timestamp: Date.now()
+        timestamp: Date.now() + gameState.serverTimeOffset
     });
 }
 
