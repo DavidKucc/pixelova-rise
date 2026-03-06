@@ -1,16 +1,16 @@
-console.log('[DEBUG] game.js loaded v=186');
+console.log('[DEBUG] game.js loaded v=187');
 
-import * as C from './config.js?v=186';
-import { gameState, viewportState } from './state.js?v=186';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=186';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure, findPath } from './utils.js?v=186';
-import { gameLoop } from './renderer.js?v=186';
-import { runAIDecision } from './ai.js?v=186';
-import { Logger } from './logger.js?v=186';
+import * as C from './config.js?v=187';
+import { gameState, viewportState } from './state.js?v=187';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=187';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure, findPath } from './utils.js?v=187';
+import { gameLoop } from './renderer.js?v=187';
+import { runAIDecision } from './ai.js?v=187';
+import { Logger } from './logger.js?v=187';
 
 // --- MULTIPLAYER SYNC ---
 import { ref, push, set, onValue, onDisconnect, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { db } from '../firebase-config.js?v=186';
+import { db } from '../firebase-config.js?v=187';
 
 export async function initGame(hostStatus = false, playerId = 'local_player', lobbyId = null, playersData = null) {
     gameState.isHost = hostStatus;
@@ -274,7 +274,7 @@ function finishInit(resolveCallback) {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové říši! Verze 186 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
+    logMessage(`Vítej v Pixelové říši! Verze 187 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
@@ -284,7 +284,7 @@ function finishInit(resolveCallback) {
     window.showScreen('game-ui');
 
     // Zapojení vstupních listenerů (mouse/keyboard events)
-    import('../main.js?v=186').then(m => {
+    import('../main.js?v=187').then(m => {
         if (window.attachEventListeners) window.attachEventListeners(); // v main.js attach fn wrapper
     });
 
@@ -331,41 +331,45 @@ export function physicsLoop(timestamp) {
         const player = gameState.players[playerId];
         if (!player || !player.activeExpeditions) continue;
 
-        // --- SKENOVÁNÍ DOLŮ (v175) ---
-        // Budeme skenovat neutrální (nebo i cizí?) doly a aktivovat je pouhou blízkostí
-        gameState.structures.forEach(s => {
-            // v178: Pouze doly se aktivují blízkostí. Tržiště (trading_post) je běžná budova.
-            if (s.type.includes('mine') && s.ownerId !== playerId) {
-                // Najít nejbližší bod expedice (včetně jejího rozptylu) k budově
-                player.activeExpeditions.forEach(exp => {
-                    const curX = exp.startX + (exp.targetX - exp.startX) * exp.progress;
-                    const curY = exp.startY + (exp.targetY - exp.startY) * exp.progress;
+        // v187: Proximity capture vyhodnocujeme POUZE pro:
+        // 1. Mě samotného (lokálního hráče)
+        // 2. AI hráče (pouze pokud jsem HOST - hostitel vyhodnocuje svět pro AI)
+        const isMe = (playerId === gameState.myPlayerId);
+        const isAI = (playerId && playerId.startsWith('ai_'));
+        const shouldProcessCapture = isMe || (isAI && gameState.isHost);
 
-                    // Rozptyl expedice (shodný s vykreslováním v renderer.js)
-                    const offsets = [
-                        { x: 0, y: 0 }, { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 },
-                        { x: 1, y: 1 }, { x: -1, y: -1 }, { x: 1, y: -1 }, { x: -1, y: 1 }
-                    ];
-                    const count = Math.min(Math.ceil(exp.unitsLeft / 2), offsets.length);
+        if (shouldProcessCapture) {
+            // --- SKENOVÁNÍ DOLŮ (v175) ---
+            gameState.structures.forEach(s => {
+                if (s.type.includes('mine') && s.ownerId !== playerId) {
+                    player.activeExpeditions.forEach(exp => {
+                        const curX = exp.startX + (exp.targetX - exp.startX) * exp.progress;
+                        const curY = exp.startY + (exp.targetY - exp.startY) * exp.progress;
 
-                    let isClose = false;
-                    for (let i = 0; i < count; i++) {
-                        const px = curX + offsets[i].x;
-                        const py = curY + offsets[i].y;
-                        const dist = Math.hypot(px - (s.x + s.w / 2), py - (s.y + s.h / 2));
-                        if (dist <= C.WORKER_PROXIMITY_RADIUS + Math.max(s.w, s.h) / 2) {
-                            isClose = true;
-                            break;
+                        const offsets = [
+                            { x: 0, y: 0 }, { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 },
+                            { x: 1, y: 1 }, { x: -1, y: -1 }, { x: 1, y: -1 }, { x: -1, y: 1 }
+                        ];
+                        const count = Math.min(Math.ceil(exp.unitsLeft / 2), offsets.length);
+
+                        let isClose = false;
+                        for (let i = 0; i < count; i++) {
+                            const px = curX + offsets[i].x;
+                            const py = curY + offsets[i].y;
+                            const dist = Math.hypot(px - (s.x + s.w / 2), py - (s.y + s.h / 2));
+                            if (dist <= C.WORKER_PROXIMITY_RADIUS + Math.max(s.w, s.h) / 2) {
+                                isClose = true;
+                                break;
+                            }
                         }
-                    }
 
-                    if (isClose) {
-                        // AKTIVACE DOLU! (v179: isProximity=true)
-                        captureStructure(playerId, s.id, false, true);
-                    }
-                });
-            }
-        });
+                        if (isClose) {
+                            captureStructure(playerId, s.id, false, true);
+                        }
+                    });
+                }
+            });
+        }
 
         for (let i = player.activeExpeditions.length - 1; i >= 0; i--) {
             const exp = player.activeExpeditions[i];
@@ -616,10 +620,10 @@ function handleCombatBetweenExpeditions(p1Id) {
                     // MULTIPLAYER SYNC: Po každém zásahu v boji (synchronizujeme jen své jednotky)
                     if (gameState.currentLobbyId) {
                         if (p1Id === gameState.myPlayerId) {
-                            import('../main.js?v=186').then(m => m.syncExpeditionToFirebase(p1Id, e1));
+                            import('../main.js?v=187').then(m => m.syncExpeditionToFirebase(p1Id, e1));
                         }
                         if (p2Id === gameState.myPlayerId) {
-                            import('../main.js?v=186').then(m => m.syncExpeditionToFirebase(p2Id, e2));
+                            import('../main.js?v=187').then(m => m.syncExpeditionToFirebase(p2Id, e2));
                         }
                     }
 
@@ -648,7 +652,7 @@ function removeExpedition(playerId, expId) {
 
         // MULTIPLAYER SYNC: Pouze majitel maže z Firebase!
         if (playerId === gameState.myPlayerId && gameState.currentLobbyId) {
-            import('../main.js?v=186').then(m => {
+            import('../main.js?v=187').then(m => {
                 m.removeFromFirebase(`lobbies/${gameState.currentLobbyId}/expeditions/${playerId}/${expId}`);
             });
         }
@@ -854,7 +858,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = nu
 
     // MULTIPLAYER SYNC
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=186').then(m => {
+        import('../main.js?v=187').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -966,7 +970,7 @@ export function redirectExpedition(playerId, expId, targetX, targetY) {
 
     // MULTIPLAYER SYNC PESMROVN
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=186').then(m => {
+        import('../main.js?v=187').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -1007,7 +1011,7 @@ export function splitExpedition(playerId, expId, targetX, targetY, percent) {
 
     // MULTIPLAYER SYNC ROZDLEN A ZMENEN PVODN
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=186').then(m => {
+        import('../main.js?v=187').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
             m.syncExpeditionToFirebase(playerId, newExp);
         });
@@ -1055,7 +1059,11 @@ export function captureStructure(playerId, structId, isRemoteAction = false, isP
 
     if (!isRemoteAction) player.gold -= (struct.data.cost || 0);
     struct.ownerId = playerId;
-    struct.type = 'owned_' + struct.type.replace('visible_', '').replace('hidden_', '');
+
+    // v187: Agresivní normalizace typu budovy (odstranění všech prefixů před přidáním owned_)
+    // Dříve se stávalo, že typ byl např. 'owned_owned_mine', což rozbíjelo ikony (otazníky ??).
+    const baseType = struct.type.replace('owned_', '').replace('visible_', '').replace('hidden_', '');
+    struct.type = 'owned_' + baseType;
 
     if (struct.type === 'owned_village') player.units += struct.data.unit_bonus;
     if (struct.type === 'owned_ancient_library') revealMapAround(struct.x, struct.y, struct.data.reveal_radius, playerId);
@@ -1068,11 +1076,11 @@ export function captureStructure(playerId, structId, isRemoteAction = false, isP
 
     // MULTIPLAYER SYNC
     if (!isRemoteAction && gameState.currentLobbyId) {
-        import('../main.js?v=186').then(m => {
+        import('../main.js?v=187').then(m => {
             m.syncActionToFirebase({
                 type: 'capture',
                 structureId: structId,
-                playerId: gameState.myPlayerId
+                playerId: playerId // v187 FIX: Posíláme playerId dobyvatele, ne vždy myPlayerId
             });
         });
     }

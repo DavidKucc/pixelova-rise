@@ -1,9 +1,9 @@
-console.log('[AI] ai.js loaded v=186');
+console.log('[AI] ai.js loaded v=187');
 
-import { gameState } from './state.js?v=186';
-import { launchExpedition, buildStructure, captureStructure } from './game.js?v=186';
-import * as C from './config.js?v=186';
-import { isAreaClear } from './utils.js?v=186';
+import { gameState } from './state.js?v=187';
+import { launchExpedition, buildStructure, captureStructure } from './game.js?v=187';
+import * as C from './config.js?v=187';
+import { isAreaClear } from './utils.js?v=187';
 
 // Hlavn� rozhodovac� funkce pro AI
 export function runAIDecision(playerId) {
