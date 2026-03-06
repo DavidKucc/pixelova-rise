@@ -85,7 +85,9 @@ body {
 }
 
 #start-game-btn,
-.mode-buttons button {
+.mode-buttons button,
+.ready-btn,
+#start-online-game-btn {
     padding: 20px 40px;
     font-size: 1.5em;
     font-family: 'Press Start 2P', cursive;
@@ -102,11 +104,31 @@ body {
     min-width: 320px;
 }
 
+#start-online-game-btn {
+    margin-top: 10px;
+    background-color: #2e7d32;
+    /* Tmavší zelená pro start hry */
+}
+
+#start-game-btn:hover,
 .mode-buttons button:hover,
-#start-game-btn:hover {
+.ready-btn:hover,
+#start-online-game-btn:hover:not(:disabled) {
     background-color: var(--accent-hover);
     transform: scale(1.05);
 }
+
+.ready-btn {
+    background: #555;
+    min-width: 320px;
+}
+
+.ready-active {
+    background: #4caf50 !important;
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.8);
+    transform: scale(1.05);
+}
+
 
 .mode-buttons {
     display: flex;
@@ -442,17 +464,8 @@ canvas {
     cursor: not-allowed;
 }
 
-/* --- LOBBY IMPROVEMENTS --- */
-.ready-btn {
-    background: #555 !important;
-    transition: all 0.3s ease;
-}
+/* Lobby Improvements smazány a přesunuty výš k unifikovaným buttonům */
 
-.ready-active {
-    background: #4caf50 !important;
-    box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
-    transform: scale(1.05);
-}
 
 #start-online-game-btn:disabled {
     cursor: not-allowed;
