@@ -1,8 +1,8 @@
-console.log('[DEBUG] renderer.js loaded v=183');
+console.log('[DEBUG] renderer.js loaded v=184');
 
-import { ui } from './ui.js?v=183';
-import { gameState, viewportState } from './state.js?v=183';
-import * as C from './config.js?v=183';
+import { ui } from './ui.js?v=184';
+import { gameState, viewportState } from './state.js?v=184';
+import * as C from './config.js?v=184';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 export function gameLoop() {
@@ -183,17 +183,27 @@ function drawExpedition(ctx, curX, curY, units, color, isSelected) {
     ctx.strokeStyle = isSelected ? '#fff' : color;
     ctx.lineWidth = isSelected ? (2 / viewportState.scale) : (1 / viewportState.scale);
 
-    const offsets = [
-        { x: 0, y: 0 }, { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 },
-        { x: 1, y: 1 }, { x: -1, y: -1 }, { x: 1, y: -1 }, { x: -1, y: 1 }
-    ];
-    const count = Math.min(Math.ceil(units / 2), offsets.length);
-    for (let i = 0; i < count; i++) {
-        const ox = (curX + offsets[i].x) * fullCellSize;
-        const oy = (curY + offsets[i].y) * fullCellSize;
+    // v184: Matematické škálování velikosti "mraku" 
+    // Počet pixelů = ceil(units / 5), max 49 (7x7) aby to nebylo moc obří
+    const pixelCount = Math.min(49, Math.ceil(units / 5));
+
+    // Spirálový/čtvercový rozptyl od středu [0,0]
+    const points = [];
+    let x = 0, y = 0, dx = 0, dy = -1;
+    for (let i = 0; i < pixelCount; i++) {
+        points.push({ x, y });
+        if (x === y || (x < 0 && x === -y) || (x > 0 && x === 1 - y)) {
+            let temp = dx; dx = -dy; dy = temp; // Otočení o 90 stupňů
+        }
+        x += dx; y += dy;
+    }
+
+    points.forEach(p => {
+        const ox = (curX + p.x) * fullCellSize;
+        const oy = (curY + p.y) * fullCellSize;
         ctx.fillRect(ox, oy, CELL_SIZE, CELL_SIZE);
         if (isSelected) ctx.strokeRect(ox, oy, CELL_SIZE, CELL_SIZE);
-    }
+    });
 }
 
 function drawDustIndicators(ctx, x, y) {

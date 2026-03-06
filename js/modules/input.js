@@ -1,12 +1,10 @@
-// js/modules/input.js
-// Zpracování vstupů od uživatele (myš, zoom, kliknutí).
-console.log('[INPUT] input.js loaded v=183');
+console.log('[INPUT] input.js loaded v=184');
 
-import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=183';
-import { viewportState, gameState } from './state.js?v=183';
-import * as C from './config.js?v=183';
-import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition } from './game.js?v=183';
-import { updateUI } from './ui.js?v=183';
+import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=184';
+import { viewportState, gameState } from './state.js?v=184';
+import * as C from './config.js?v=184';
+import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition, centerCameraOnBase } from './game.js?v=184';
+import { updateUI } from './ui.js?v=184';
 
 // Stav klávesy Q
 let isQPressed = false;
@@ -17,20 +15,30 @@ window.addEventListener('keydown', (e) => {
     // Klávesové zkratky
     if (e.code === 'KeyG') {
         const coords = viewportState.lastMouseGridCoords;
-        if (coords) gatherExpeditions('human', coords.x, coords.y);
+        if (coords) gatherExpeditions(gameState.myPlayerId, coords.x, coords.y);
     }
 
     if (e.code === 'KeyH') {
-        const player = gameState.players['human'];
+        const player = gameState.players[gameState.myPlayerId];
         if (player) {
             player.activeExpeditions.forEach(exp => {
                 if (gameState.selectedExpeditionIds.includes(exp.id)) {
                     exp.isHolding = !exp.isHolding;
                     console.log(`Expedice #${exp.id} holding: ${exp.isHolding}`);
+
+                    // v184 SYNC: Zastavení se musí poslat do Firebase!
+                    if (gameState.currentLobbyId) {
+                        import('../main.js?v=184').then(m => m.syncExpeditionToFirebase(gameState.myPlayerId, exp));
+                    }
                 }
             });
             gameState.needsRedraw = true;
         }
+    }
+
+    if (e.code === 'Space') {
+        e.preventDefault();
+        centerCameraOnBase();
     }
 });
 
@@ -269,7 +277,8 @@ function handleRightClick(e) {
             showBuildMenu(gameState.myPlayerId, coords.x, coords.y, e);
         } else if (struct && struct.ownerId !== gameState.myPlayerId) {
             showCaptureMenu(gameState.myPlayerId, struct, e);
-        } else if (cell.ownerId !== gameState.myPlayerId && cell.ownerId !== null) {
+        } else {
+            // v184: Pokud kliknu na PRÁZNÉ OBJEVENÉ pole (neutrální), nabídnu vyslání expedice
             showExpeditionMenu(gameState.myPlayerId, coords.x, coords.y, e);
         }
     }

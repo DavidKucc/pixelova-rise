@@ -1,16 +1,16 @@
-console.log('[DEBUG] game.js loaded v=183');
+console.log('[DEBUG] game.js loaded v=184');
 
-import * as C from './config.js?v=183';
-import { gameState, viewportState } from './state.js?v=183';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=183';
-import { getNeighbors, isAreaClear, createStructure, placeRandomStructure, findPath } from './utils.js?v=183';
-import { gameLoop } from './renderer.js?v=183';
-import { runAIDecision } from './ai.js?v=183';
-import { Logger } from './logger.js?v=183';
+import * as C from './config.js?v=184';
+import { gameState, viewportState } from './state.js?v=184';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=184';
+import { getNeighbors, isAreaClear, createStructure, placeRandomStructure, findPath } from './utils.js?v=184';
+import { gameLoop } from './renderer.js?v=184';
+import { runAIDecision } from './ai.js?v=184';
+import { Logger } from './logger.js?v=184';
 
 // --- MULTIPLAYER SYNC ---
 import { ref, push, set, onValue, onDisconnect, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { db } from '../firebase-config.js?v=183';
+import { db } from '../firebase-config.js?v=184';
 
 export async function initGame(hostStatus = false, playerId = 'local_player', lobbyId = null, playersData = null) {
     gameState.isHost = hostStatus;
@@ -246,17 +246,10 @@ function finishInit(resolveCallback) {
 
     // Viewport: Zacílit kameru hráče na JEHO základnu
     viewportState.scale = 0.5;
-    const vp = document.getElementById('game-viewport');
-    if (vp) {
-        const myIndex = gameState.players[gameState.myPlayerId]?.index || 0;
-        const basePos = C.BASE_POSITIONS[myIndex];
-
-        if (basePos) {
-            viewportState.gridPos.x = vp.clientWidth / 2 - (basePos.x * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
-            viewportState.gridPos.y = vp.clientHeight / 2 - (basePos.y * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
-            console.log(`[GAME] Kamera vycentrovaná na: [${basePos.x}, ${basePos.y}] pro ${gameState.myPlayerId}`);
-        }
-    }
+    // v184: Přidán malý delay, aby se stihl vykreslit DOM a viewport měl správné rozměry
+    setTimeout(() => {
+        centerCameraOnBase();
+    }, 100);
 
     // attachEventListeners(initGame); // VOLÁ MAIN.JS kvuli závislostem
 
@@ -275,7 +268,7 @@ function finishInit(resolveCallback) {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové říši! Verze 183 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
+    logMessage(`Vítej v Pixelové říši! Verze 184 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
@@ -285,7 +278,7 @@ function finishInit(resolveCallback) {
     window.showScreen('game-ui');
 
     // Zapojení vstupních listenerů (mouse/keyboard events)
-    import('../main.js?v=183').then(m => {
+    import('../main.js?v=184').then(m => {
         if (window.attachEventListeners) window.attachEventListeners(); // v main.js attach fn wrapper
     });
 
@@ -617,10 +610,10 @@ function handleCombatBetweenExpeditions(p1Id) {
                     // MULTIPLAYER SYNC: Po každém zásahu v boji (synchronizujeme jen své jednotky)
                     if (gameState.currentLobbyId) {
                         if (p1Id === gameState.myPlayerId) {
-                            import('../main.js?v=183').then(m => m.syncExpeditionToFirebase(p1Id, e1));
+                            import('../main.js?v=184').then(m => m.syncExpeditionToFirebase(p1Id, e1));
                         }
                         if (p2Id === gameState.myPlayerId) {
-                            import('../main.js?v=183').then(m => m.syncExpeditionToFirebase(p2Id, e2));
+                            import('../main.js?v=184').then(m => m.syncExpeditionToFirebase(p2Id, e2));
                         }
                     }
 
@@ -649,7 +642,7 @@ function removeExpedition(playerId, expId) {
 
         // MULTIPLAYER SYNC: Pouze majitel maže z Firebase!
         if (playerId === gameState.myPlayerId && gameState.currentLobbyId) {
-            import('../main.js?v=183').then(m => {
+            import('../main.js?v=184').then(m => {
                 m.removeFromFirebase(`lobbies/${gameState.currentLobbyId}/expeditions/${playerId}/${expId}`);
             });
         }
@@ -855,7 +848,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = nu
 
     // MULTIPLAYER SYNC
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=183').then(m => {
+        import('../main.js?v=184').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -964,7 +957,7 @@ export function redirectExpedition(playerId, expId, targetX, targetY) {
 
     // MULTIPLAYER SYNC PESMROVN
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=183').then(m => {
+        import('../main.js?v=184').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
         });
     }
@@ -1005,7 +998,7 @@ export function splitExpedition(playerId, expId, targetX, targetY, percent) {
 
     // MULTIPLAYER SYNC ROZDLEN A ZMENEN PVODN
     if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=183').then(m => {
+        import('../main.js?v=184').then(m => {
             m.syncExpeditionToFirebase(playerId, exp);
             m.syncExpeditionToFirebase(playerId, newExp);
         });
@@ -1043,15 +1036,15 @@ export function captureStructure(playerId, structId, isRemoteAction = false, isP
     const player = gameState.players[playerId];
     if (!struct || !player) return;
 
-    // v179: Doly se nesmí dát "koupit" přes UI (Double-click/Context menu/Panel). Pouze blízkostí.
+    // v179: Doly se nesmí dát "koupit" přes UI. Pouze blízkostí.
     if (struct.type.includes('mine') && !isProximity && !isRemoteAction) {
         logMessage(`Tento důl musíš aktivovat přiblížením jednotky!`, 'warn');
         return;
     }
 
-    if (player.gold < (struct.data.cost || 0)) return;
+    if (!isRemoteAction && player.gold < (struct.data.cost || 0)) return;
 
-    player.gold -= (struct.data.cost || 0);
+    if (!isRemoteAction) player.gold -= (struct.data.cost || 0);
     struct.ownerId = playerId;
     struct.type = 'owned_' + struct.type.replace('visible_', '').replace('hidden_', '');
 
@@ -1061,19 +1054,43 @@ export function captureStructure(playerId, structId, isRemoteAction = false, isP
     updateUI();
     updateActionPanel();
     recalculatePlayerIncome(playerId);
-    logMessage(`Budova ${struct.data.name} byla obsazena ${player.name}!`, 'win');
+    gameState.needsRedraw = true;
+    logMessage(`Budova ${struct.data.name} byla obsazena hráčem ${player.name}!`, 'win');
 
-    // MULTIPLAYER SYNC ACTIONS
-    if (!isRemoteAction && gameState.currentLobbyId && playerId === gameState.myPlayerId) {
-        import('../main.js?v=183').then(m => {
+    // MULTIPLAYER SYNC
+    if (!isRemoteAction && gameState.currentLobbyId) {
+        import('../main.js?v=184').then(m => {
             m.syncActionToFirebase({
                 type: 'capture',
-                playerId: playerId,
                 structureId: structId,
-                timestamp: Date.now()
+                playerId: gameState.myPlayerId
             });
         });
     }
+}
+
+export function centerCameraOnBase() {
+    const vp = document.getElementById('game-viewport');
+    if (!vp) return;
+
+    const myId = gameState.myPlayerId;
+    const structures = Array.from(gameState.structures.values());
+    const base = structures.find(s => s.ownerId === myId && s.type.includes('base'));
+
+    if (base) {
+        const centerX = base.x + base.w / 2;
+        const centerY = base.y + base.h / 2;
+        viewportState.gridPos.x = vp.clientWidth / 2 - (centerX * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
+        viewportState.gridPos.y = vp.clientHeight / 2 - (centerY * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
+    } else {
+        const myIndex = gameState.players[myId]?.index || 0;
+        const basePos = C.BASE_POSITIONS[myIndex];
+        if (basePos) {
+            viewportState.gridPos.x = vp.clientWidth / 2 - (basePos.x * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
+            viewportState.gridPos.y = vp.clientHeight / 2 - (basePos.y * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale);
+        }
+    }
+    gameState.needsRedraw = true;
 }
 
 export function revealMapAround(cx, cy, radius, playerId = gameState.myPlayerId) {
