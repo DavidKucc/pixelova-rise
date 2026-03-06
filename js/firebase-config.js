@@ -1,5 +1,5 @@
 // js/firebase-config.js
-console.log('[DEBUG] firebase-config.js loaded v=182');
+console.log('[DEBUG] firebase-config.js loaded v=183');
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getDatabase } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
