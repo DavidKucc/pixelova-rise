@@ -1,11 +1,11 @@
-import { db } from './firebase-config.js?v=194';
+import { db } from './firebase-config.js?v=195';
 import { ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { initGame } from './modules/game.js?v=194';
-import { attachEventListeners } from './modules/input.js?v=194';
+import { initGame } from './modules/game.js?v=195';
+import { attachEventListeners } from './modules/input.js?v=195';
 
 window.attachEventListeners = attachEventListeners;
 
-import { gameState } from './modules/state.js?v=194';
+import { gameState } from './modules/state.js?v=195';
 
 export let playerFirebaseRef = null;
 

@@ -1,12 +1,24 @@
-console.log('[DEBUG] renderer.js loaded v=194');
+console.log('[DEBUG] renderer.js loaded v=195');
 
-import { ui } from './ui.js?v=194';
-import { gameState, viewportState } from './state.js?v=194';
-import * as C from './config.js?v=194';
+import { ui } from './ui.js?v=195';
+import { gameState, viewportState } from './state.js?v=195';
+import * as C from './config.js?v=195';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 export function gameLoop() {
-    if (gameState.needsRedraw) {
+    // v195 FIX: Pokud existuje jakákoliv pohybující se expedice, VŽDY překreslovat každý frame.
+    // Dříve se kreslilo jen při gameState.needsRedraw = true (pouze při akci uživatele).
+    // Vzdálené expedice mají své progress aktualizované physicsLoop, ale plátno se neobnovilo.
+    let hasMovingExpeditions = false;
+    for (const pId in gameState.players) {
+        const p = gameState.players[pId];
+        if (p?.activeExpeditions?.some(e => !e.arrived)) {
+            hasMovingExpeditions = true;
+            break;
+        }
+    }
+
+    if (gameState.needsRedraw || hasMovingExpeditions) {
         drawBoard();
         gameState.needsRedraw = false;
     }
