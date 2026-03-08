@@ -1,10 +1,10 @@
-console.log('[INPUT] input.js loaded v=193');
+console.log('[INPUT] input.js loaded v=194');
 
-import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=193';
-import { viewportState, gameState } from './state.js?v=193';
-import * as C from './config.js?v=193';
-import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition, centerCameraOnBase } from './game.js?v=193';
-import { updateUI } from './ui.js?v=193';
+import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=194';
+import { viewportState, gameState } from './state.js?v=194';
+import * as C from './config.js?v=194';
+import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition, centerCameraOnBase } from './game.js?v=194';
+import { updateUI } from './ui.js?v=194';
 
 // Stav klávesy Q
 let isQPressed = false;
@@ -28,7 +28,7 @@ window.addEventListener('keydown', (e) => {
 
                     // v184 SYNC: Zastavení se musí poslat do Firebase!
                     if (gameState.currentLobbyId) {
-                        import('../main.js?v=193').then(m => m.syncExpeditionToFirebase(gameState.myPlayerId, exp));
+                        import('../main.js?v=194').then(m => m.syncExpeditionToFirebase(gameState.myPlayerId, exp));
                     }
                 }
             });
@@ -99,7 +99,7 @@ function onMouseMove(e) {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    // V�DY aktualizovat sou�adnice pod my��
+    // VDY aktualizovat souadnice pod my
     viewportState.lastMouseGridCoords = getGridCoordsFromEvent(e);
 
     if (gameState.selectionBox.active) {
@@ -111,7 +111,7 @@ function onMouseMove(e) {
         }
         gameState.needsRedraw = true;
     } else if (isPanning) {
-        // Logika pro panov�n� (LMB Single Hold - Ta�en� kamery)
+        // Logika pro panovn (LMB Single Hold - Taen kamery)
         if (!viewportState.didDrag && Math.hypot(e.clientX - (viewportState.startPos.x + viewportState.gridPos.x), e.clientY - (viewportState.startPos.y + viewportState.gridPos.y)) > 5) {
             viewportState.didDrag = true;
             removeContextMenu();
@@ -127,15 +127,15 @@ function onMouseMove(e) {
 function onMouseUp(e) {
     if (e.button === 0) {
         if (gameState.selectionBox.active) {
-            // Ukon�en v�b�rov� box
+            // Ukonen vbrov box
             if (viewportState.didDrag) {
                 performBoxSelection();
             }
             gameState.selectionBox.active = false;
         } else if (isPanning) {
-            // Ukon�en pan
+            // Ukonen pan
             if (!viewportState.didDrag) {
-                // Nebylo to ta�en�, tak�e to byl norm�ln� single-click!
+                // Nebylo to taen, take to byl normln single-click!
                 if (!e.shiftKey) {
                     gameState.selectedExpeditionIds = [];
                     gameState.selectedStructureId = null;
@@ -146,7 +146,7 @@ function onMouseUp(e) {
         }
     }
 
-    // Pojistka pro p��pad ztr�ty focusu
+    // Pojistka pro ppad ztrty focusu
     if (e.buttons === 0) {
         gameState.selectionBox.active = false;
         isPanning = false;
@@ -167,14 +167,14 @@ function performBoxSelection() {
     if (!player) return;
 
     player.activeExpeditions.forEach(exp => {
-        // P�evod hern�ch sou�adnic expedice na obrazovkov�
+        // Pevod hernch souadnic expedice na obrazovkov
         const curX = Math.round(exp.startX + (exp.targetX - exp.startX) * exp.progress);
         const curY = Math.round(exp.startY + (exp.targetY - exp.startY) * exp.progress);
 
         const screenX = curX * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale + viewportState.gridPos.x;
         const screenY = curY * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale + viewportState.gridPos.y;
 
-        // Hitbox: Expedice je vybr�na, pokud se jej� mrak (cca 2 bu�ky polom�r) dot�k� boxu
+        // Hitbox: Expedice je vybrna, pokud se jej mrak (cca 2 buky polomr) dotk boxu
         const margin = 2 * (C.CELL_SIZE + C.GAP_SIZE) * viewportState.scale;
 
         if (screenX + margin >= x1 && screenX - margin <= x2 &&
@@ -185,25 +185,25 @@ function performBoxSelection() {
 
     gameState.selectedExpeditionIds = selectedIds;
     if (selectedIds.length > 0) {
-        gameState.selectedStructureId = null; // Zru�it v�b�r budovy p�i v�b�ru arm�dy
+        gameState.selectedStructureId = null; // Zruit vbr budovy pi vbru armdy
     }
-    console.log(`[INPUT] Vybr�no ${selectedIds.length} expedic.`);
+    console.log(`[INPUT] Vybrno ${selectedIds.length} expedic.`);
 }
 
 function onWheel(e) {
     e.preventDefault();
 
-    // Pokud dr�� Q, m�n�me velikost expedice
+    // Pokud dr Q, mnme velikost expedice
     if (isQPressed) {
         let currentValue = parseInt(ui.slider.value, 10);
-        const delta = e.deltaY > 0 ? -5 : 5; // Kole�ko dol� = m�n�, nahoru = v�ce
+        const delta = e.deltaY > 0 ? -5 : 5; // Koleko dol = mn, nahoru = vce
         currentValue = Math.max(1, Math.min(100, currentValue + delta));
         ui.slider.value = currentValue;
         updateSliderLabel(); // Aktualizace textu
         return;
     }
 
-    // Jinak klasick� zoom
+    // Jinak klasick zoom
     const rect = ui.viewport.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
@@ -237,7 +237,7 @@ function onGridClick(e) {
     const player = gameState.players[gameState.myPlayerId];
     if (!player) return;
 
-    // Klik na vlastn� objevenou expedici vybere jen tu jednu (p��padn� p�id� s shiftem)
+    // Klik na vlastn objevenou expedici vybere jen tu jednu (ppadn pid s shiftem)
     const hitExp = player.activeExpeditions.find(exp => {
         const curX = Math.round(exp.startX + (exp.targetX - exp.startX) * exp.progress);
         const curY = Math.round(exp.startY + (exp.targetY - exp.startY) * exp.progress);
@@ -255,14 +255,16 @@ function onGridClick(e) {
     handleCellClick(cell);
 }
 
-// Odstran�n� nativn�ho dvojkliku z canvasu (byl p�esunut na 2x prav� a 2x lev�)
+// Odstrann nativnho dvojkliku z canvasu (byl pesunut na 2x prav a 2x lev)
 ui.viewport.addEventListener('click', (e) => {
-    // O�et�eno z onMouseUp (norm�ln� klik), nen� pot�eba nativn� listener 
+    // Oeteno z onMouseUp (normln klik), nen poteba nativn listener 
 });
 
 function handleRightClick(e) {
     e.preventDefault();
     if (viewportState.didDrag) return;
+    // v194 FIX: Pokud jsme právě zpracovali double-click, neotevírat kontextové menu
+    if (typeof justHandledDoubleClick !== 'undefined' && justHandledDoubleClick) return;
     const coords = getGridCoordsFromEvent(e);
     if (!coords) return;
     if (!gameState.gameBoard[coords.y]) return;
@@ -290,7 +292,7 @@ function handleRightDoubleClick(e) {
     if (!coords) return;
 
     if (gameState.selectedExpeditionIds.length > 0) {
-        // AKCE PRO VYBRAN� EXPEDICE - POVEL K POCHODU (PRAV� DVOJKLIK)
+        // AKCE PRO VYBRAN EXPEDICE - POVEL K POCHODU (PRAV DVOJKLIK)
         removeContextMenu();
         const ids = [...gameState.selectedExpeditionIds];
         if (e.shiftKey) {
@@ -318,32 +320,38 @@ export function attachEventListeners(initGame) {
     ui.viewport.addEventListener('wheel', onWheel, { passive: false });
     ui.viewport.addEventListener('contextmenu', handleRightClick);
 
-    // Glob�ln� pojistka proti probubl�n� kontextov�ho menu z mousedown event�
+    // Globln pojistka proti probubln kontextovho menu z mousedown event
     document.addEventListener('contextmenu', (e) => {
         if (e.target.closest('#game-viewport') || e.target.closest('#game-canvas')) {
             e.preventDefault();
         }
     });
 
-    // Vlastn� logika pro odchycen� prav�ho dvojkliku, kter� prohl�e� nativn� moc dob�e nepodporuje
+    // Vlastn logika pro odchycen pravho dvojkliku, kter prohle nativn moc dobe nepodporuje
     let rightClickTimeout = null;
     let rightClickCount = 0;
 
+    // v194 FIX: Flag, který zabraňuje zobrazit kontextové menu po právním dvojkliku
+    let justHandledDoubleClick = false;
+
     ui.viewport.addEventListener('mousedown', (e) => {
         if (e.button === 2) {
-            e.preventDefault(); // Zabra�uje v�choz�mu chov�n� pro jistotu
+            e.preventDefault(); // Zabrauje vchozmu chovn pro jistotu
             rightClickCount++;
             if (rightClickCount === 1) {
-                // Prvn� klik se zpracuje nativn� p�es contextmenu event, ale nastav�me si timeout na dvojklik
+                // Prvn klik se zpracuje nativn pes contextmenu event, ale nastavme si timeout na dvojklik
                 rightClickTimeout = setTimeout(() => {
                     rightClickCount = 0;
                 }, 250); // 250ms rozestup na RTS dvojklik
             } else if (rightClickCount === 2) {
-                // Druh� klik v �asov�m limitu!
+                // Druh klik v asovm limitu!
                 clearTimeout(rightClickTimeout);
                 rightClickCount = 0;
-                removeContextMenu(); // Uklid�me dialog z prvn�ho kliku!
+                justHandledDoubleClick = true; // Nastavíme flag
+                removeContextMenu(); // Uklidme dialog z prvnho kliku!
                 handleRightDoubleClick(e);
+                // Reset flagu po krátké prodlevě (aby contextmenu event stiáhl)
+                setTimeout(() => { justHandledDoubleClick = false; }, 100);
             }
         }
     });
