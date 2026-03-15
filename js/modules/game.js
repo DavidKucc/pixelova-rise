@@ -1,16 +1,16 @@
-console.log('[DEBUG] game.js loaded v=201');
+console.log('[DEBUG] game.js loaded v=202');
 
-import * as C from './config.js?v=201';
-import { gameState, viewportState } from './state.js?v=201';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=201';
-import { getServerTime, getNeighbors, isAreaClear, createStructure, placeRandomStructure, findPath } from './utils.js?v=201';
-import { gameLoop } from './renderer.js?v=201';
-import { runAIDecision } from './ai.js?v=201';
-import { Logger } from './logger.js?v=201';
+import * as C from './config.js?v=202';
+import { gameState, viewportState } from './state.js?v=202';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=202';
+import { getServerTime, getNeighbors, isAreaClear, createStructure, placeRandomStructure, findPath } from './utils.js?v=202';
+import { gameLoop } from './renderer.js?v=202';
+import { runAIDecision } from './ai.js?v=202';
+import { Logger } from './logger.js?v=202';
 
 // --- MULTIPLAYER (V201 ODDELENO) ---
-import { setupMultiplayerSync, syncExpeditionToFirebase, removeExpeditionFromFirebase, syncActionToFirebase } from './multiplayer.js?v=201';
-import { handleCombatBetweenExpeditions } from './combat.js?v=201';
+import { setupMultiplayerSync, syncExpeditionToFirebase, removeExpeditionFromFirebase, syncActionToFirebase } from './multiplayer.js?v=202';
+import { handleCombatBetweenExpeditions } from './combat.js?v=202';
 
 // v190: Pomocná funkce pro získání synchronizovaného času
 
@@ -277,7 +277,7 @@ function finishInit(resolveCallback) {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové říši! Verze 201 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
+    logMessage(`Vítej v Pixelové říši! Verze 202 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
@@ -287,7 +287,7 @@ function finishInit(resolveCallback) {
     window.showScreen('game-ui');
 
     // Zapojení vstupních listenerů (mouse/keyboard events)
-    import('../main.js?v=201').then(m => {
+    import('../main.js?v=202').then(m => {
         if (window.attachEventListeners) window.attachEventListeners(); // v main.js attach fn wrapper
     });
 
@@ -626,7 +626,7 @@ function handleMergingBetweenExpeditions(playerId) {
 
                 // Pokud jsme v multiplayeru, smažeme e2 z Firebase a updatneme e1
                 if (gameState.currentLobbyId && (playerId === gameState.myPlayerId || (playerId.startsWith('ai_') && gameState.isHost))) {
-                    import('../main.js?v=201').then(m => {
+                    import('../main.js?v=202').then(m => {
                         m.removeFromFirebase(`lobbies/${gameState.currentLobbyId}/expeditions/${playerId}/${e2Id}`);
                         m.syncExpeditionToFirebase(playerId, e1);
                     });
@@ -657,7 +657,7 @@ function removeExpedition(playerId, expId) {
 
         // MULTIPLAYER SYNC: Pouze majitel maže z Firebase!
         if (playerId === gameState.myPlayerId && gameState.currentLobbyId) {
-            import('../main.js?v=201').then(m => {
+            import('../main.js?v=202').then(m => {
                 m.removeFromFirebase(`lobbies/${gameState.currentLobbyId}/expeditions/${playerId}/${expId}`);
             });
         }
