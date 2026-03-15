@@ -1,8 +1,8 @@
-console.log('[DEBUG] combat.js loaded v=206');
+console.log('[DEBUG] combat.js loaded v=207');
 
-import { gameState } from './state.js?v=206';
-import { removeExpedition } from './game.js?v=206';
-import { syncExpeditionToFirebase } from './multiplayer.js?v=206';
+import { gameState } from './state.js?v=207';
+import { removeExpedition } from './game.js?v=207';
+import { syncExpeditionToFirebase } from './multiplayer.js?v=207';
 
 /**
  * Zpracovává bitvy mezi dvěma expedicemi. 

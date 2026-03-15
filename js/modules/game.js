@@ -1,18 +1,18 @@
-console.log('[DEBUG] game.js loaded v=206');
+console.log('[DEBUG] game.js loaded v=207');
 
-import { db } from '../firebase-config.js?v=206';
+import { db } from '../firebase-config.js?v=207';
 import { ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import * as C from './config.js?v=206';
-import { gameState, viewportState } from './state.js?v=206';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=206';
-import { getServerTime, getNeighbors, isAreaClear, createStructure, placeRandomStructure, findPath } from './utils.js?v=206';
-import { gameLoop } from './renderer.js?v=206';
-import { runAIDecision } from './ai.js?v=206';
-import { Logger } from './logger.js?v=206';
+import * as C from './config.js?v=207';
+import { gameState, viewportState } from './state.js?v=207';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=207';
+import { getServerTime, getNeighbors, isAreaClear, createStructure, placeRandomStructure, findPath } from './utils.js?v=207';
+import { gameLoop } from './renderer.js?v=207';
+import { runAIDecision } from './ai.js?v=207';
+import { Logger } from './logger.js?v=207';
 
 // --- MULTIPLAYER (V201 ODDELENO) ---
-import { setupMultiplayerSync, syncExpeditionToFirebase, removeExpeditionFromFirebase, syncActionToFirebase } from './multiplayer.js?v=206';
-import { handleCombatBetweenExpeditions } from './combat.js?v=206';
+import { setupMultiplayerSync, syncExpeditionToFirebase, removeExpeditionFromFirebase, syncActionToFirebase } from './multiplayer.js?v=207';
+import { handleCombatBetweenExpeditions } from './combat.js?v=207';
 
 // v190: Pomocná funkce pro získání synchronizovaného času
 
@@ -279,7 +279,7 @@ function finishInit(resolveCallback) {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové říši! Verze 206 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
+    logMessage(`Vítej v Pixelové říši! Verze 207 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
@@ -289,7 +289,7 @@ function finishInit(resolveCallback) {
     window.showScreen('game-ui');
 
     // Zapojení vstupních listenerů (mouse/keyboard events)
-    import('../main.js?v=206').then(m => {
+    import('../main.js?v=207').then(m => {
         if (window.attachEventListeners) window.attachEventListeners(); // v main.js attach fn wrapper
     });
 
@@ -854,7 +854,7 @@ export function launchExpedition(playerId, targetX, targetY, units, sourceX = nu
     logMessage(`Expedice #${exp.id} vysl�na na [${targetX}, ${targetY}] s ${units} jednotkami.`);
 
     // MULTIPLAYER SYNC
-    if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
+    if (gameState.currentLobbyId && (playerId === gameState.myPlayerId || (playerId.startsWith('ai_') && gameState.isHost))) {
         syncExpeditionToFirebase(playerId, exp);
     }
 }
@@ -888,7 +888,7 @@ export function redirectExpedition(playerId, expId, targetX, targetY) {
     logMessage(`Expedice #${exp.id} pesmrovna na [${targetX}, ${targetY}].`);
 
     // MULTIPLAYER SYNC PESMROVN
-    if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
+    if (gameState.currentLobbyId && (playerId === gameState.myPlayerId || (playerId.startsWith('ai_') && gameState.isHost))) {
         syncExpeditionToFirebase(playerId, exp);
     }
 }
@@ -927,7 +927,7 @@ export function splitExpedition(playerId, expId, targetX, targetY, percent) {
     logMessage(`Expedice #${exp.id} rozdlena! Nov expedice #${newExp.id} vyslna s ${splitUnits} jednotkami.`);
 
     // MULTIPLAYER SYNC ROZDLEN A ZMENEN PVODN
-    if (gameState.currentLobbyId && playerId === gameState.myPlayerId) {
+    if (gameState.currentLobbyId && (playerId === gameState.myPlayerId || (playerId.startsWith('ai_') && gameState.isHost))) {
         syncExpeditionToFirebase(playerId, exp);
         syncExpeditionToFirebase(playerId, newExp);
     }
