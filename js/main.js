@@ -1,11 +1,11 @@
-import { db } from './firebase-config.js?v=195';
+import { db } from './firebase-config.js?v=201';
 import { ref, set, push, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { initGame } from './modules/game.js?v=195';
-import { attachEventListeners } from './modules/input.js?v=195';
+import { initGame } from './modules/game.js?v=201';
+import { attachEventListeners } from './modules/input.js?v=201';
 
 window.attachEventListeners = attachEventListeners;
 
-import { gameState } from './modules/state.js?v=195';
+import { gameState } from './modules/state.js?v=201';
 
 export let playerFirebaseRef = null;
 
@@ -380,9 +380,7 @@ window.onerror = function (msg, url, line) {
     return false;
 };
 // --- SYNCHRONIZAČNÍ EXPORTY ---
-export function removeFromFirebase(path) {
-    if (!db || !path) return;
-    remove(ref(db, path)).catch(err => console.error(`[SYNC] Chyba při mazání z FB (${path}):`, err));
+// V201: Nyní přesunuty a nativně volány v modules/multiplayer.js):`, err));
 }
 
 export function syncExpeditionToFirebase(playerId, exp) {

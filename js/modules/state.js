@@ -1,5 +1,5 @@
 // js/modules/state.js
-console.log('[DEBUG] state.js loaded v=195');
+console.log('[DEBUG] state.js loaded v=201');
 // Exportuje objekty, které drží veškerý měnitelný stav hry.
 
 export const gameState = {
