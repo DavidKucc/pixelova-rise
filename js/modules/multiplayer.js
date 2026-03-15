@@ -1,10 +1,10 @@
-console.log('[DEBUG] multiplayer.js loaded v=205');
+console.log('[DEBUG] multiplayer.js loaded v=206');
 
-import { db } from '../firebase-config.js?v=205';
+import { db } from '../firebase-config.js?v=206';
 import { ref, set, push, onValue, onDisconnect, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { gameState } from './state.js?v=205';
-import { getServerTime } from './utils.js?v=205';
-import { captureStructure } from './game.js?v=205';
+import { gameState } from './state.js?v=206';
+import { getServerTime } from './utils.js?v=206';
+import { captureStructure } from './game.js?v=206';
 
 /**
  * Zodpovídá za přepis lokálního pole `player.activeExpeditions` Firebase daty.
@@ -82,6 +82,15 @@ export function setupMultiplayerSync() {
                     });
                 }
             }
+            
+            // LOG pro debug neviditelnosti zprostředkovaně od uživatele
+            if (updatedExpeditions.length > 0) {
+                console.log(`[SYNC-DEBUG] Hráč ${otherPlayerId} má celkem ${updatedExpeditions.length} akt. expedic.`);
+                updatedExpeditions.forEach(e => {
+                    console.log(`[SYNC-DEBUG] -> Expedice ${e.id} na souřadnicích [${Math.round(e.startX + (e.targetX - e.startX) * e.progress)}, ${Math.round(e.startY + (e.targetY - e.startY) * e.progress)}] (progress: ${e.progress.toFixed(2)})`);
+                });
+            }
+
             otherPlayer.activeExpeditions = updatedExpeditions;
         });
     });
