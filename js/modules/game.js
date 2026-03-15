@@ -586,64 +586,7 @@ function gameTick() {
     }
     updateUI();
     updateExpeditionsPanel();
-}
-
-function handleCombatBetweenExpeditions(p1Id) {
-    const p1 = gameState.players[p1Id];
-    if (!p1) return;
-
-    for (const p2Id in gameState.players) {
-        if (p1Id === p2Id) continue;
-        const p2 = gameState.players[p2Id];
-
-        p1.activeExpeditions.forEach(e1 => {
-            p2.activeExpeditions.forEach(e2 => {
-                const e1X = e1.startX + (e1.targetX - e1.startX) * e1.progress;
-                const e1Y = e1.startY + (e1.targetY - e1.startY) * e1.progress;
-                const e2X = e2.startX + (e2.targetX - e2.startX) * e2.progress;
-                const e2Y = e2.startY + (e2.targetY - e2.startY) * e2.progress;
-
-                const dist = Math.hypot(e1X - e2X, e1Y - e2Y);
-
-                if (dist < 1.5) { // Dosah boje
-                    const cell = gameState.gameBoard[Math.round(e1Y)]?.[Math.round(e1X)];
-                    const terrainWidth = (cell?.terrain === 'forest') ? 0.2 : 1.0;
-
-                    // Výpočet ztrát (zjednodušený Meat Grinder)
-                    const baseLoss = 2 * terrainWidth;
-                    e1.unitsLeft -= baseLoss;
-                    e2.unitsLeft -= baseLoss;
-
-                    // v189: SYSTÉM PANIKY DEAKTIVOVÁN (na přání uživatele pro plynulejší testování 1:1 syncu)
-                    /*
-                    if (e1.unitsLeft < e1.initialUnits * 0.5) {
-                        e1.panic = true;
-                        redirectExpeditionToHome(p1Id, e1);
-                    }
-                    if (e2.unitsLeft < e2.initialUnits * 0.5) {
-                        e2.panic = true;
-                        redirectExpeditionToHome(p2Id, e2);
-                    }
-                    */
-
-                    if (e1.unitsLeft <= 0) removeExpedition(p1Id, e1.id);
-                    if (e2.unitsLeft <= 0) removeExpedition(p2Id, e2.id);
-
-                    // MULTIPLAYER SYNC: Po každém zásahu v boji (synchronizujeme jen své jednotky)
-                    if (gameState.currentLobbyId) {
-                        if (p1Id === gameState.myPlayerId) {
-                            import('../main.js?v=201').then(m => m.syncExpeditionToFirebase(p1Id, e1));
-                        }
-                        if (p2Id === gameState.myPlayerId) {
-                            import('../main.js?v=201').then(m => m.syncExpeditionToFirebase(p2Id, e2));
-                        }
-                    }
-
-                    gameState.needsRedraw = true;
-                }
-            });
-        });
-    }
+    gameState.needsRedraw = true;
 }
 
 // v188: Funkce pro plynulé slučování expedic stejného hráče
