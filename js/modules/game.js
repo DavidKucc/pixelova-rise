@@ -628,10 +628,8 @@ function handleMergingBetweenExpeditions(playerId) {
 
                 // Pokud jsme v multiplayeru, smažeme e2 z Firebase a updatneme e1
                 if (gameState.currentLobbyId && (playerId === gameState.myPlayerId || (playerId.startsWith('ai_') && gameState.isHost))) {
-                    import('../main.js?v=203').then(m => {
-                        m.removeFromFirebase(`lobbies/${gameState.currentLobbyId}/expeditions/${playerId}/${e2Id}`);
-                        m.syncExpeditionToFirebase(playerId, e1);
-                    });
+                    removeExpeditionFromFirebase(playerId, e2Id);
+                    syncExpeditionToFirebase(playerId, e1);
                 }
 
                 gameState.needsRedraw = true;
@@ -659,9 +657,7 @@ export function removeExpedition(playerId, expId) {
 
         // MULTIPLAYER SYNC: Pouze majitel maže z Firebase!
         if (playerId === gameState.myPlayerId && gameState.currentLobbyId) {
-            import('../main.js?v=203').then(m => {
-                m.removeFromFirebase(`lobbies/${gameState.currentLobbyId}/expeditions/${playerId}/${expId}`);
-            });
+            removeExpeditionFromFirebase(playerId, expId);
         }
 
         logMessage(`Expedice #${expId} dorazila nebo byla zničena.`, 'info');
