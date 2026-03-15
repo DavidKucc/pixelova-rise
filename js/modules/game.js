@@ -1,5 +1,7 @@
 console.log('[DEBUG] game.js loaded v=202');
 
+import { db } from '../firebase-config.js?v=202';
+import { ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import * as C from './config.js?v=202';
 import { gameState, viewportState } from './state.js?v=202';
 import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=202';
