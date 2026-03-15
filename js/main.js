@@ -380,29 +380,4 @@ window.onerror = function (msg, url, line) {
     return false;
 };
 // --- SYNCHRONIZAČNÍ EXPORTY ---
-// V201: Nyní přesunuty a nativně volány v modules/multiplayer.js):`, err));
-}
-
-export function syncExpeditionToFirebase(playerId, exp) {
-    if (!gameState.currentLobbyId || !exp) return;
-    const expeditionsRef = ref(db, `lobbies/${gameState.currentLobbyId}/expeditions/${playerId}/${exp.id}`);
-    set(expeditionsRef, {
-        id: exp.id,
-        startX: exp.startX,
-        startY: exp.startY,
-        targetX: exp.targetX,
-        targetY: exp.targetY,
-        units: exp.unitsLeft,
-        startTime: exp.startTime || (Date.now() + gameState.serverTimeOffset),
-        duration: exp.duration || 0,
-        isHolding: exp.isHolding || false, // v186: Synchronizace stavu Hold
-        timestamp: Date.now() + gameState.serverTimeOffset
-    });
-}
-
-// Záchrana chybějící funkce z v152! Odesílání signálů akcí.
-export function syncActionToFirebase(actionData) {
-    if (!gameState.currentLobbyId || !actionData) return;
-    const actionsRef = ref(db, `lobbies/${gameState.currentLobbyId}/actions`);
-    push(actionsRef, actionData);
-}
+// V201: Nyní přesunuty a nativně volány v modules/multiplayer.js
