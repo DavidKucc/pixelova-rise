@@ -1,10 +1,10 @@
-console.log('[DEBUG] multiplayer.js loaded v=204');
+console.log('[DEBUG] multiplayer.js loaded v=205');
 
-import { db } from '../firebase-config.js?v=204';
+import { db } from '../firebase-config.js?v=205';
 import { ref, set, push, onValue, onDisconnect, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { gameState } from './state.js?v=204';
-import { getServerTime } from './utils.js?v=204';
-import { captureStructure } from './game.js?v=204';
+import { gameState } from './state.js?v=205';
+import { getServerTime } from './utils.js?v=205';
+import { captureStructure } from './game.js?v=205';
 
 /**
  * Zodpovídá za přepis lokálního pole `player.activeExpeditions` Firebase daty.
@@ -32,6 +32,7 @@ export function setupMultiplayerSync() {
 
             for (const id in data) {
                 const remote = data[id];
+                if (!remote) continue; // FIX pro Firebase pole s null dírami
                 const existingExp = otherPlayer.activeExpeditions.find(e => e.id === remote.id);
 
                 if (existingExp) {

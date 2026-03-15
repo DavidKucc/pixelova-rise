@@ -1,18 +1,18 @@
-console.log('[DEBUG] game.js loaded v=204');
+console.log('[DEBUG] game.js loaded v=205');
 
-import { db } from '../firebase-config.js?v=204';
+import { db } from '../firebase-config.js?v=205';
 import { ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import * as C from './config.js?v=204';
-import { gameState, viewportState } from './state.js?v=204';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=204';
-import { getServerTime, getNeighbors, isAreaClear, createStructure, placeRandomStructure, findPath } from './utils.js?v=204';
-import { gameLoop } from './renderer.js?v=204';
-import { runAIDecision } from './ai.js?v=204';
-import { Logger } from './logger.js?v=204';
+import * as C from './config.js?v=205';
+import { gameState, viewportState } from './state.js?v=205';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=205';
+import { getServerTime, getNeighbors, isAreaClear, createStructure, placeRandomStructure, findPath } from './utils.js?v=205';
+import { gameLoop } from './renderer.js?v=205';
+import { runAIDecision } from './ai.js?v=205';
+import { Logger } from './logger.js?v=205';
 
 // --- MULTIPLAYER (V201 ODDELENO) ---
-import { setupMultiplayerSync, syncExpeditionToFirebase, removeExpeditionFromFirebase, syncActionToFirebase } from './multiplayer.js?v=204';
-import { handleCombatBetweenExpeditions } from './combat.js?v=204';
+import { setupMultiplayerSync, syncExpeditionToFirebase, removeExpeditionFromFirebase, syncActionToFirebase } from './multiplayer.js?v=205';
+import { handleCombatBetweenExpeditions } from './combat.js?v=205';
 
 // v190: Pomocná funkce pro získání synchronizovaného času
 
@@ -279,7 +279,7 @@ function finishInit(resolveCallback) {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové říši! Verze 204 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
+    logMessage(`Vítej v Pixelové říši! Verze 205 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
@@ -289,7 +289,7 @@ function finishInit(resolveCallback) {
     window.showScreen('game-ui');
 
     // Zapojení vstupních listenerů (mouse/keyboard events)
-    import('../main.js?v=204').then(m => {
+    import('../main.js?v=205').then(m => {
         if (window.attachEventListeners) window.attachEventListeners(); // v main.js attach fn wrapper
     });
 
@@ -382,24 +382,48 @@ export function physicsLoop(timestamp) {
             if (exp.isHolding) continue;
 
             if (!exp.arrived) {
+                const prevProgressCalc = exp.progress;
+
                 // v181: ABSOLUTNÍ SYNCHRONIZACE POHYBU (startTime + duration)
-                // Toto funguje perfektně i v background tabech prohlížeče.
                 if (exp.startTime && exp.duration) {
                     const elapsed = getServerTime() - (exp.startTime || 0);
-                    // v192: Math.max(0, ...) zajišťuje, že jednotka nepoběží "dozadu" při mírném časovém rozdílu
                     exp.progress = Math.max(0, Math.min(1, elapsed / exp.duration));
                 } else {
-                    // Fallback pokud startTime chybí (např. starší data)
                     const dist = Math.hypot(exp.targetX - exp.startX, exp.targetY - exp.startY);
                     exp.progress += (C.EXPEDITION_SPEED * dt) / (dist || 1);
+                }
+
+                // FOG OF WAR INTERPOLACE (PRED označením arrived)
+                if (exp.progress > prevProgressCalc) {
+                    const dist = Math.hypot(exp.targetX - exp.startX, exp.targetY - exp.startY);
+                    if (dist > 0) {
+                        const prevX = exp.startX + (exp.targetX - exp.startX) * prevProgressCalc;
+                        const prevY = exp.startY + (exp.targetY - exp.startY) * prevProgressCalc;
+
+                        const curX = exp.startX + (exp.targetX - exp.startX) * exp.progress;
+                        const curY = exp.startY + (exp.targetY - exp.startY) * exp.progress;
+
+                        if (playerId === gameState.myPlayerId) {
+                            const moveRevealRadius = Math.max(5, 2 + Math.floor(Math.sqrt(exp.unitsLeft) / 2));
+                            const stepDist = Math.hypot(curX - prevX, curY - prevY);
+                            if (stepDist > 1.0) {
+                                const steps = Math.ceil(stepDist);
+                                for (let s = 1; s <= steps; s++) {
+                                    const interX = prevX + (curX - prevX) * (s / steps);
+                                    const interY = prevY + (curY - prevY) * (s / steps);
+                                    revealMapAround(Math.round(interX), Math.round(interY), moveRevealRadius, playerId);
+                                }
+                            } else {
+                                revealMapAround(Math.round(curX), Math.round(curY), moveRevealRadius, playerId);
+                            }
+                        }
+                        movedAny = true;
+                    }
                 }
 
                 if (exp.progress >= 1) {
                     exp.progress = 1;
                     exp.arrived = true;
-                    // v193: Vzdálené expedice (isRemote) NESMÍ volat handleExpeditionArrival lokálně!
-                    // Jejich dorazení řídí Firebase - smaže je, a setupMultiplayerSync then smaže lokálně.
-                    // Volání lokálne by způsobovalo duplicitní obsazení budov nebo jiné vedlejší efekty.
                     if (!exp.isRemote) {
                         handleExpeditionArrival(playerId, exp);
                     }
@@ -408,36 +432,6 @@ export function physicsLoop(timestamp) {
                 // Už dorazila
                 if (playerId === gameState.myPlayerId && gameState.logicIntervals) {
                     revealMapAround(exp.targetX, exp.targetY, Math.max(5, 2 + Math.floor(Math.sqrt(exp.unitsLeft) / 2)), playerId);
-                }
-            }
-
-            if (!exp.arrived) {
-                // v181: Interpolace Fog of War (prevX/prevY) také pomocí reálného času
-                const dist = Math.hypot(exp.targetX - exp.startX, exp.targetY - exp.startY);
-                if (dist > 0) {
-                    const prevProgress = Math.max(0, exp.progress - (C.EXPEDITION_SPEED * dt / dist));
-                    const prevX = exp.startX + (exp.targetX - exp.startX) * prevProgress;
-                    const prevY = exp.startY + (exp.targetY - exp.startY) * prevProgress;
-
-                    const curX = exp.startX + (exp.targetX - exp.startX) * exp.progress;
-                    const curY = exp.startY + (exp.targetY - exp.startY) * exp.progress;
-
-                    // FOG OF WAR (INTERPOLACE PRO v179/v181)
-                    if (playerId === gameState.myPlayerId) {
-                        const moveRevealRadius = Math.max(5, 2 + Math.floor(Math.sqrt(exp.unitsLeft) / 2));
-                        const stepDist = Math.hypot(curX - prevX, curY - prevY);
-                        if (stepDist > 1.0) {
-                            const steps = Math.ceil(stepDist);
-                            for (let s = 1; s <= steps; s++) {
-                                const interX = prevX + (curX - prevX) * (s / steps);
-                                const interY = prevY + (curY - prevY) * (s / steps);
-                                revealMapAround(Math.round(interX), Math.round(interY), moveRevealRadius, playerId);
-                            }
-                        } else {
-                            revealMapAround(Math.round(curX), Math.round(curY), moveRevealRadius, playerId);
-                        }
-                    }
-                    movedAny = true;
                 }
             }
         }
