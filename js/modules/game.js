@@ -650,7 +650,7 @@ function redirectExpeditionToHome(playerId, exp) {
     }
 }
 
-function removeExpedition(playerId, expId) {
+export function removeExpedition(playerId, expId) {
     const player = gameState.players[playerId];
     if (player) {
         player.activeExpeditions = player.activeExpeditions.filter(e => e.id !== expId);
