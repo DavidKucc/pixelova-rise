@@ -1,8 +1,8 @@
-console.log('[DEBUG] combat.js loaded v=207');
+console.log('[DEBUG] combat.js loaded v=208');
 
-import { gameState } from './state.js?v=207';
-import { removeExpedition } from './game.js?v=207';
-import { syncExpeditionToFirebase } from './multiplayer.js?v=207';
+import { gameState } from './state.js?v=208';
+import { removeExpedition } from './game.js?v=208';
+import { syncExpeditionToFirebase } from './multiplayer.js?v=208';
 
 /**
  * Zpracovává bitvy mezi dvěma expedicemi. 
@@ -31,7 +31,7 @@ export function handleCombatBetweenExpeditions(p1Id) {
 
                     // --- V201 HOST AUTHORITY ---
                     // Pouze pokud jsem Host (zakladatel lobby nebo local mode) provádím matematiku a sync
-                    if (gameState.isHost) {
+                    if (gameState.isHost || !gameState.currentLobbyId) {
                         const baseLoss = 2 * terrainWidth;
                         e1.unitsLeft -= baseLoss;
                         e2.unitsLeft -= baseLoss;
@@ -39,20 +39,11 @@ export function handleCombatBetweenExpeditions(p1Id) {
                         if (e1.unitsLeft <= 0) removeExpedition(p1Id, e1.id);
                         if (e2.unitsLeft <= 0) removeExpedition(p2Id, e2.id);
 
-                        // Host odešle update OBOU zasažených expedic, zabrání ping-pong the loopu
+                        // Host odešle update OBOU zasažených expedic
                         if (gameState.currentLobbyId) {
                             syncExpeditionToFirebase(p1Id, e1);
                             syncExpeditionToFirebase(p2Id, e2);
                         }
-                    } else {
-                        // Klienti (hosté) pouze lokálně "předpovídají" vizuální poškození 
-                        // pro lepší pocit ze hry, ale NEODESÍLAJÍ TO! (Data přemaže sync od Hosta)
-                        const baseLoss = 2 * terrainWidth;
-                        e1.unitsLeft -= baseLoss;
-                        e2.unitsLeft -= baseLoss;
-                        
-                        if (e1.unitsLeft <= 0) removeExpedition(p1Id, e1.id);
-                        if (e2.unitsLeft <= 0) removeExpedition(p2Id, e2.id);
                     }
 
                     gameState.needsRedraw = true;
