@@ -1,10 +1,10 @@
-console.log('[DEBUG] multiplayer.js loaded v=209');
+console.log('[DEBUG] multiplayer.js loaded v=210');
 
-import { db } from '../firebase-config.js?v=209';
+import { db } from '../firebase-config.js?v=210';
 import { ref, set, push, onValue, onDisconnect, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { gameState } from './state.js?v=209';
-import { getServerTime } from './utils.js?v=209';
-import { captureStructure } from './game.js?v=209';
+import { gameState } from './state.js?v=210';
+import { getServerTime } from './utils.js?v=210';
+import { captureStructure } from './game.js?v=210';
 
 /**
  * Zodpovídá za přepis lokálního pole `player.activeExpeditions` Firebase daty.
@@ -57,9 +57,10 @@ export function setupMultiplayerSync() {
                             existingExp.progress = remote.duration > 0
                                 ? Math.max(0, Math.min(1, elapsed / remote.duration))
                                 : 1;
+                            existingExp.arrived = (existingExp.progress >= 1);
                         }
                     } else {
-                        // Moje vlastní expedice modifikovaná HZostem na Firebase!
+                        // Moje vlastní expedice modifikovaná Hostem na Firebase!
                         const targetChanged = (existingExp.targetX !== remote.targetX || existingExp.targetY !== remote.targetY);
                         if (targetChanged) {
                              existingExp.targetX = remote.targetX;
@@ -68,6 +69,7 @@ export function setupMultiplayerSync() {
                              existingExp.startY = remote.startY;
                              existingExp.startTime = remote.startTime;
                              existingExp.duration = remote.duration;
+                             existingExp.arrived = false; // Rozhodně neodborný dojezd, musí se rozjet
                         }
                     }
                     updatedExpeditions.push(existingExp);
