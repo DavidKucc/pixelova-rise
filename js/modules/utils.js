@@ -1,9 +1,9 @@
 // js/modules/utils.js
 // Pomocné, znovupoužitelné funkce, které nejsou přímo vázané na herní logiku.
-console.log('[DEBUG] utils.js loaded v=208');
+console.log('[DEBUG] utils.js loaded v=209');
 
-import * as C from './config.js?v=208';
-import { gameState } from './state.js?v=208';
+import * as C from './config.js?v=209';
+import { gameState } from './state.js?v=209';
 
 // v201: Přesunuto z game.js pro centrální použití včetně multiplayer.js
 export function getServerTime() {
@@ -33,11 +33,16 @@ export function isAreaClear(x, y, w, h) {
 }
 
 export function createStructure(type, x, y, w, h, data, ownerId, externalId = null) {
-    const id = externalId !== null ? externalId : (gameState.structures.size + Date.now() + Math.round(Math.random() * 10000));
+    const id = externalId !== null ? externalId : `struct_${Date.now()}_${Math.random().toString(36).substring(2, 8)}_${gameState.structures.size}`;
     const newStructure = { id, type, x, y, w, h, data, ownerId: ownerId, upkeep: data.upkeep || null };
 
-    if (type.includes('base')) {
-        console.log(`[DEBUG] createStructure: VYTVÁŘÍM ZÁKLADNU! ID=${id}, type=${type}, owner=${ownerId}, pos=[${x},${y}]`);
+    if (type.includes('base') || type.includes('village')) {
+        console.log(`[DEBUG] createStructure: Generuji klíčovou budovu! ID=${id}, type=${type}, owner=${ownerId}`);
+    }
+
+    // Navrácení automatického prefixu vlastnictví
+    if (ownerId && !type.includes('owned_')) {
+        newStructure.type = 'owned_' + type;
     }
 
     gameState.structures.set(id, newStructure);

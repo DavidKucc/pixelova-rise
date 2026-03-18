@@ -1,18 +1,18 @@
-console.log('[DEBUG] game.js loaded v=208');
+console.log('[DEBUG] game.js loaded v=209');
 
-import { db } from '../firebase-config.js?v=208';
+import { db } from '../firebase-config.js?v=209';
 import { ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import * as C from './config.js?v=208';
-import { gameState, viewportState } from './state.js?v=208';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=208';
-import { getServerTime, getNeighbors, isAreaClear, createStructure, placeRandomStructure, findPath } from './utils.js?v=208';
-import { gameLoop } from './renderer.js?v=208';
-import { runAIDecision } from './ai.js?v=208';
-import { Logger } from './logger.js?v=208';
+import * as C from './config.js?v=209';
+import { gameState, viewportState } from './state.js?v=209';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=209';
+import { getServerTime, getNeighbors, isAreaClear, createStructure, placeRandomStructure, findPath } from './utils.js?v=209';
+import { gameLoop } from './renderer.js?v=209';
+import { runAIDecision } from './ai.js?v=209';
+import { Logger } from './logger.js?v=209';
 
 // --- MULTIPLAYER (V201 ODDELENO) ---
-import { setupMultiplayerSync, syncExpeditionToFirebase, removeExpeditionFromFirebase, syncActionToFirebase } from './multiplayer.js?v=208';
-import { handleCombatBetweenExpeditions } from './combat.js?v=208';
+import { setupMultiplayerSync, syncExpeditionToFirebase, removeExpeditionFromFirebase, syncActionToFirebase } from './multiplayer.js?v=209';
+import { handleCombatBetweenExpeditions } from './combat.js?v=209';
 
 // v190: Pomocná funkce pro získání synchronizovaného času
 
@@ -279,7 +279,7 @@ function finishInit(resolveCallback) {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové říši! Verze 208 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
+    logMessage(`Vítej v Pixelové říši! Verze 209 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
@@ -289,7 +289,7 @@ function finishInit(resolveCallback) {
     window.showScreen('game-ui');
 
     // Zapojení vstupních listenerů (mouse/keyboard events)
-    import('../main.js?v=208').then(m => {
+    import('../main.js?v=209').then(m => {
         if (window.attachEventListeners) window.attachEventListeners(); // v main.js attach fn wrapper
     });
 

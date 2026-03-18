@@ -1,8 +1,8 @@
-console.log('[DEBUG] renderer.js loaded v=208');
+console.log('[DEBUG] renderer.js loaded v=209');
 
-import { ui } from './ui.js?v=208';
-import { gameState, viewportState } from './state.js?v=208';
-import * as C from './config.js?v=208';
+import { ui } from './ui.js?v=209';
+import { gameState, viewportState } from './state.js?v=209';
+import * as C from './config.js?v=209';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 export function gameLoop() {

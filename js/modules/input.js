@@ -1,10 +1,10 @@
-console.log('[INPUT] input.js loaded v=208');
+console.log('[INPUT] input.js loaded v=209');
 
-import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=208';
-import { viewportState, gameState } from './state.js?v=208';
-import * as C from './config.js?v=208';
-import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition, centerCameraOnBase } from './game.js?v=208';
-import { updateUI } from './ui.js?v=208';
+import { ui, updateSliderLabel, logMessage, removeContextMenu } from './ui.js?v=209';
+import { viewportState, gameState } from './state.js?v=209';
+import * as C from './config.js?v=209';
+import { gatherExpeditions, launchExpedition, redirectExpedition, initGame, handleCellClick, captureStructure, showExpeditionMenu, showBuildMenu, showCaptureMenu, splitExpedition, centerCameraOnBase } from './game.js?v=209';
+import { updateUI } from './ui.js?v=209';
 
 // Stav klávesy Q
 let isQPressed = false;
@@ -28,7 +28,7 @@ window.addEventListener('keydown', (e) => {
 
                     // v184 SYNC: Zastavení se musí poslat do Firebase!
                     if (gameState.currentLobbyId) {
-                        import('../main.js?v=208').then(m => m.syncExpeditionToFirebase(gameState.myPlayerId, exp));
+                        import('../main.js?v=209').then(m => m.syncExpeditionToFirebase(gameState.myPlayerId, exp));
                     }
                 }
             });
