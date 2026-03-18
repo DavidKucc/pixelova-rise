@@ -1,18 +1,18 @@
-console.log('[DEBUG] game.js loaded v=216');
+console.log('[DEBUG] game.js loaded v=217');
 
-import { db } from '../firebase-config.js?v=216';
+import { db } from '../firebase-config.js?v=217';
 import { ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import * as C from './config.js?v=216';
-import { gameState, viewportState } from './state.js?v=216';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=216';
-import { getServerTime, getNeighbors, isAreaClear, createStructure, placeRandomStructure, findPath } from './utils.js?v=216';
-import { gameLoop } from './renderer.js?v=216';
-import { runAIDecision } from './ai.js?v=216';
-import { Logger } from './logger.js?v=216';
+import * as C from './config.js?v=217';
+import { gameState, viewportState } from './state.js?v=217';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=217';
+import { getServerTime, getNeighbors, isAreaClear, createStructure, placeRandomStructure, findPath } from './utils.js?v=217';
+import { gameLoop } from './renderer.js?v=217';
+import { runAIDecision } from './ai.js?v=217';
+import { Logger } from './logger.js?v=217';
 
 // --- MULTIPLAYER (V201 ODDELENO) ---
-import { setupMultiplayerSync, syncExpeditionToFirebase, removeExpeditionFromFirebase, syncActionToFirebase } from './multiplayer.js?v=216';
-import { handleCombatBetweenExpeditions } from './combat.js?v=216';
+import { setupMultiplayerSync, syncExpeditionToFirebase, removeExpeditionFromFirebase, syncActionToFirebase } from './multiplayer.js?v=217';
+import { handleCombatBetweenExpeditions } from './combat.js?v=217';
 
 // v190: Pomocná funkce pro získání synchronizovaného času
 
@@ -279,7 +279,7 @@ function finishInit(resolveCallback) {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové říši! Verze 216 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
+    logMessage(`Vítej v Pixelové říši! Verze 217 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
 
     gameState.needsRedraw = true;
     requestAnimationFrame(gameLoop);
@@ -289,7 +289,7 @@ function finishInit(resolveCallback) {
     window.showScreen('game-ui');
 
     // Zapojení vstupních listenerů (mouse/keyboard events)
-    import('../main.js?v=216').then(m => {
+    import('../main.js?v=217').then(m => {
         if (window.attachEventListeners) window.attachEventListeners(); // v main.js attach fn wrapper
     });
 
@@ -597,6 +597,7 @@ function handleMergingBetweenExpeditions(playerId) {
             const e2 = player.activeExpeditions[j];
 
             if (!e1 || !e2) continue;
+            if (e1.unitsLeft <= 0 || e2.unitsLeft <= 0) continue; // Neviditelní duchové z předchozích sessionů se nesmí slučovat
 
             // Musí mít stejný cíl
             if (e1.targetX !== e2.targetX || e1.targetY !== e2.targetY) continue;

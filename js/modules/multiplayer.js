@@ -1,10 +1,10 @@
-console.log('[DEBUG] multiplayer.js loaded v=216');
+console.log('[DEBUG] multiplayer.js loaded v=217');
 
-import { db } from '../firebase-config.js?v=216';
+import { db } from '../firebase-config.js?v=217';
 import { ref, set, push, onValue, onDisconnect, remove, onChildAdded, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { gameState } from './state.js?v=216';
-import { getServerTime } from './utils.js?v=216';
-import { captureStructure } from './game.js?v=216';
+import { gameState } from './state.js?v=217';
+import { getServerTime } from './utils.js?v=217';
+import { captureStructure } from './game.js?v=217';
 
 /**
  * Zodpovídá za přepis lokálního pole `player.activeExpeditions` Firebase daty.
@@ -32,6 +32,13 @@ export function setupMultiplayerSync() {
             for (const id in data) {
                 const remote = data[id];
                 if (!remote) continue; // FIX pro Firebase pole s null dírami
+                
+                // V217: Absolutní krematorium - Mrtvoly nesmí být nikdy oživeny!
+                if (remote.units <= 0) {
+                    removeExpeditionFromFirebase(otherPlayerId, remote.id);
+                    continue;
+                }
+
                 const existingExp = otherPlayer.activeExpeditions.find(e => e.id === remote.id);
 
                 if (existingExp) {
