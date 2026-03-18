@@ -1,9 +1,9 @@
 // js/modules/utils.js
 // Pomocné, znovupoužitelné funkce, které nejsou přímo vázané na herní logiku.
-console.log('[DEBUG] utils.js loaded v=212');
+console.log('[DEBUG] utils.js loaded v=213');
 
-import * as C from './config.js?v=212';
-import { gameState } from './state.js?v=212';
+import * as C from './config.js?v=213';
+import { gameState } from './state.js?v=213';
 
 // v201: Přesunuto z game.js pro centrální použití včetně multiplayer.js
 export function getServerTime() {
