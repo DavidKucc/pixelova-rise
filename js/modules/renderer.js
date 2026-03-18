@@ -195,19 +195,20 @@ function drawExpedition(ctx, curX, curY, units, color, isSelected) {
     ctx.strokeStyle = isSelected ? '#fff' : color;
     ctx.lineWidth = isSelected ? (2 / viewportState.scale) : (1 / viewportState.scale);
 
-    // v184: Matematické škálování velikosti "mraku" 
-    // Počet pixelů = ceil(units / 5), max 49 (7x7) aby to nebylo moc obří
-    const pixelCount = Math.min(49, Math.ceil(units / 5));
+    // v211: Zarovnané formace jednotek (1:1 reprezentace s ořezem na max 64 = 8x8 blok)
+    const pixelCount = Math.min(64, Math.ceil(units));
+    const side = Math.ceil(Math.sqrt(pixelCount));
+    const offset = (side - 1) / 2; // Zarovnání na střed
 
-    // Spirálový/čtvercový rozptyl od středu [0,0]
     const points = [];
-    let x = 0, y = 0, dx = 0, dy = -1;
+    let px = 0, py = 0;
     for (let i = 0; i < pixelCount; i++) {
-        points.push({ x, y });
-        if (x === y || (x < 0 && x === -y) || (x > 0 && x === 1 - y)) {
-            let temp = dx; dx = -dy; dy = temp; // Otočení o 90 stupňů
+        points.push({ x: px - offset, y: py - offset });
+        px++;
+        if (px >= side) {
+            px = 0;
+            py++;
         }
-        x += dx; y += dy;
     }
 
     points.forEach(p => {
