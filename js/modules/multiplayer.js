@@ -1,10 +1,10 @@
-console.log('[DEBUG] multiplayer.js loaded v=215');
+console.log('[DEBUG] multiplayer.js loaded v=216');
 
-import { db } from '../firebase-config.js?v=215';
+import { db } from '../firebase-config.js?v=216';
 import { ref, set, push, onValue, onDisconnect, remove, onChildAdded, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { gameState } from './state.js?v=215';
-import { getServerTime } from './utils.js?v=215';
-import { captureStructure } from './game.js?v=215';
+import { gameState } from './state.js?v=216';
+import { getServerTime } from './utils.js?v=216';
+import { captureStructure } from './game.js?v=216';
 
 /**
  * Zodpovídá za přepis lokálního pole `player.activeExpeditions` Firebase daty.
@@ -36,6 +36,7 @@ export function setupMultiplayerSync() {
 
                 if (existingExp) {
                     existingExp.unitsLeft = remote.units;
+                    if (remote.initialUnits !== undefined) existingExp.initialUnits = remote.initialUnits;
                     if (remote.isHolding !== undefined) existingExp.isHolding = remote.isHolding;
                     
                     if (otherPlayerId !== gameState.myPlayerId) {
@@ -86,7 +87,7 @@ export function setupMultiplayerSync() {
                         startY: remote.startY,
                         targetX: remote.targetX,
                         targetY: remote.targetY,
-                        initialUnits: remote.units,
+                        initialUnits: remote.initialUnits !== undefined ? remote.initialUnits : remote.units,
                         unitsLeft: remote.units,
                         progress: computedProgress,
                         startTime: remote.startTime,
@@ -147,6 +148,7 @@ export function syncExpeditionToFirebase(playerId, exp, partialUpdate = false) {
             targetX: exp.targetX,
             targetY: exp.targetY,
             units: exp.unitsLeft,
+            initialUnits: exp.initialUnits,
             startTime: exp.startTime || getServerTime(),
             duration: exp.duration || 0,
             isHolding: exp.isHolding || false,
