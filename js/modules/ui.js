@@ -1,10 +1,10 @@
 // js/modules/ui.js
 // Zodpovídá za veškerou interakci s DOM elementy (vše mimo Canvas).
 
-console.log('[DEBUG] ui.js loaded v=213');
+console.log('[DEBUG] ui.js loaded v=214');
 
-import * as C from './config.js?v=213';
-import { gameState } from './state.js?v=213';
+import * as C from './config.js?v=214';
+import { gameState } from './state.js?v=214';
 
 function getEl(id) {
     const el = document.getElementById(id);
@@ -90,7 +90,13 @@ export function updateExpeditionsPanel() {
         const item = document.createElement('div');
         item.className = 'expedition-item';
         const progressPercent = exp.progress * 100;
-        item.innerHTML = `<span>Expedice #${exp.id} (${Math.round(exp.unitsLeft)}/${exp.initialUnits} ⚔️)</span><div class="expedition-progress-bar"><div class="expedition-progress" style="width: ${progressPercent}%;"></div></div>`;
+        
+        let displayName = exp.id;
+        if (typeof exp.id === 'string' && exp.id.startsWith('exp_')) {
+            displayName = exp.id.split('_').pop();
+        }
+        
+        item.innerHTML = `<span>Expedice #${displayName} (${Math.round(exp.unitsLeft)}/${Math.round(exp.initialUnits)} ⚔️)</span><div class="expedition-progress-bar"><div class="expedition-progress" style="width: ${progressPercent}%;"></div></div>`;
         list.appendChild(item);
     });
 }

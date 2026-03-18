@@ -1,10 +1,10 @@
-console.log('[DEBUG] multiplayer.js loaded v=213');
+console.log('[DEBUG] multiplayer.js loaded v=214');
 
-import { db } from '../firebase-config.js?v=213';
-import { ref, set, push, onValue, onDisconnect, remove, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { gameState } from './state.js?v=213';
-import { getServerTime } from './utils.js?v=213';
-import { captureStructure } from './game.js?v=213';
+import { db } from '../firebase-config.js?v=214';
+import { ref, set, push, onValue, onDisconnect, remove, onChildAdded, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { gameState } from './state.js?v=214';
+import { getServerTime } from './utils.js?v=214';
+import { captureStructure } from './game.js?v=214';
 
 /**
  * Zodpovídá za přepis lokálního pole `player.activeExpeditions` Firebase daty.
@@ -125,21 +125,34 @@ export function setupMultiplayerSync() {
     });
 }
 
-export function syncExpeditionToFirebase(playerId, exp) {
+export function syncExpeditionToFirebase(playerId, exp, partialUpdate = false) {
     if (!gameState.currentLobbyId || !exp) return;
     const expeditionsRef = ref(db, `lobbies/${gameState.currentLobbyId}/expeditions/${playerId}/${exp.id}`);
-    set(expeditionsRef, {
-        id: exp.id,
-        startX: exp.startX,
-        startY: exp.startY,
-        targetX: exp.targetX,
-        targetY: exp.targetY,
-        units: exp.unitsLeft,
-        startTime: exp.startTime || getServerTime(),
-        duration: exp.duration || 0,
-        isHolding: exp.isHolding || false,
-        timestamp: getServerTime() // Pro offset a re-kalkulace
-    });
+    
+    if (partialUpdate) {
+        update(expeditionsRef, {
+            startX: exp.startX,
+            startY: exp.startY,
+            targetX: exp.targetX,
+            targetY: exp.targetY,
+            startTime: exp.startTime || getServerTime(),
+            duration: exp.duration || 0,
+            timestamp: getServerTime()
+        });
+    } else {
+        set(expeditionsRef, {
+            id: exp.id,
+            startX: exp.startX,
+            startY: exp.startY,
+            targetX: exp.targetX,
+            targetY: exp.targetY,
+            units: exp.unitsLeft,
+            startTime: exp.startTime || getServerTime(),
+            duration: exp.duration || 0,
+            isHolding: exp.isHolding || false,
+            timestamp: getServerTime()
+        });
+    }
 }
 
 export function removeExpeditionFromFirebase(playerId, expId) {
