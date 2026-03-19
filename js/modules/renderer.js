@@ -1,9 +1,61 @@
-console.log('[DEBUG] renderer.js loaded v=218');
+console.log('[DEBUG] renderer.js loaded v=219');
 
-import { ui } from './ui.js?v=218';
-import { gameState, viewportState } from './state.js?v=218';
-import * as C from './config.js?v=218';
+import { ui } from './ui.js?v=219';
+import { gameState, viewportState } from './state.js?v=219';
+import * as C from './config.js?v=219';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
+
+let bgCanvasCache = null;
+let fogCanvasCache = null;
+let bgCtx = null;
+let fogCtx = null;
+
+export function initRendererCache() {
+    console.log('[RENDERER] Generuji Offscreen Cache mapy (Očekávejte drobný initial lag)...');
+    const fullSize = C.GRID_SIZE * (C.CELL_SIZE + C.GAP_SIZE);
+    
+    bgCanvasCache = document.createElement('canvas');
+    bgCanvasCache.width = fullSize;
+    bgCanvasCache.height = fullSize;
+    bgCtx = bgCanvasCache.getContext('2d', { alpha: false }); 
+    
+    // Default podklad (černá vrstva vytvoří přirozené Gaps/spáry mezi buňkami)
+    bgCtx.fillStyle = '#000';
+    bgCtx.fillRect(0, 0, fullSize, fullSize);
+    
+    fogCanvasCache = document.createElement('canvas');
+    fogCanvasCache.width = fullSize;
+    fogCanvasCache.height = fullSize;
+    fogCtx = fogCanvasCache.getContext('2d');
+    
+    // Kompletně černá mlha na startu
+    fogCtx.fillStyle = C.CELL_COLORS['hidden'];
+    fogCtx.fillRect(0, 0, fullSize, fullSize);
+
+    const fullCellSize = C.CELL_SIZE + C.GAP_SIZE;
+    
+    for (let y = 0; y < C.GRID_SIZE; y++) {
+        for (let x = 0; x < C.GRID_SIZE; x++) {
+            const cell = gameState.gameBoard[y][x];
+            
+            // Vykreslení úplně všech terénů na černý podklad (zachová 1px Grid Gaps)
+            bgCtx.fillStyle = C.CELL_COLORS[cell.terrain] || '#3d9440';
+            bgCtx.fillRect(x * fullCellSize, y * fullCellSize, C.CELL_SIZE, C.CELL_SIZE);
+            
+            // Prvotní odhalení mlhy
+            if (cell.visibleTo.includes(gameState.myPlayerId)) {
+                fogCtx.clearRect(x * fullCellSize, y * fullCellSize, fullCellSize, fullCellSize);
+            }
+        }
+    }
+    console.log('[RENDERER] Cache mapy vygenerována úspěšně!');
+}
+
+export function updateFogCache(x, y) {
+    if (!fogCtx) return;
+    const fullCellSize = C.CELL_SIZE + C.GAP_SIZE;
+    fogCtx.clearRect(x * fullCellSize, y * fullCellSize, fullCellSize, fullCellSize);
+}
 
 export function gameLoop() {
     // v195 FIX: Pokud existuje jakákoliv pohybující se expedice, VŽDY překreslovat každý frame.
@@ -44,18 +96,16 @@ function drawBoard() {
     const startY = Math.max(0, Math.floor(-gridPos.y / (scale * fullCellSize)) - 1);
     const endY = Math.min(GRID_SIZE, Math.ceil((canvas.height - gridPos.y) / (scale * fullCellSize)) + 1);
 
-    // 1. VYKRESLENÍ TERÉNU A FOG OF WAR (nyní se kreslí jen viditelný výřez kamery)
-    for (let y = startY; y < endY; y++) {
-        for (let x = startX; x < endX; x++) {
-            const cell = gameState.gameBoard[y][x];
+    // 1. VYKRESLENÍ TERÉNU A FOG OF WAR (Akcelerováno přes Offscreen Cache Textury viz V218)
+    if (bgCanvasCache && fogCanvasCache) {
+        const sx = Math.max(0, startX * fullCellSize);
+        const sy = Math.max(0, startY * fullCellSize);
+        const sw = Math.max(1, Math.min(bgCanvasCache.width - sx, (endX - startX) * fullCellSize));
+        const sh = Math.max(1, Math.min(bgCanvasCache.height - sy, (endY - startY) * fullCellSize));
 
-            // OPTIMALIZACE: Pokud nen buka vidt, kreslme erno
-            let visible = cell.visibleTo.includes(gameState.myPlayerId);
-            let finalColor = visible ? (CELL_COLORS[cell.terrain] || CELL_COLORS['none'] || '#3d9440') : CELL_COLORS['hidden'];
-
-            ctx.fillStyle = finalColor;
-            ctx.fillRect(x * fullCellSize, y * fullCellSize, CELL_SIZE, CELL_SIZE);
-        }
+        // Bleskurychlý GPU Blit
+        ctx.drawImage(bgCanvasCache, sx, sy, sw, sh, sx, sy, sw, sh);
+        ctx.drawImage(fogCanvasCache, sx, sy, sw, sh, sx, sy, sw, sh);
     }
 
     // 2. VYKRESLENÍ BUDOV (s cullingem)

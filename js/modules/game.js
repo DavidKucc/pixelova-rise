@@ -1,18 +1,18 @@
-console.log('[DEBUG] game.js loaded v=218');
+console.log('[DEBUG] game.js loaded v=219');
 
-import { db } from '../firebase-config.js?v=218';
+import { db } from '../firebase-config.js?v=219';
 import { ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import * as C from './config.js?v=218';
-import { gameState, viewportState } from './state.js?v=218';
-import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=218';
-import { getServerTime, getNeighbors, isAreaClear, createStructure, placeRandomStructure, findPath } from './utils.js?v=218';
-import { gameLoop } from './renderer.js?v=218';
-import { runAIDecision } from './ai.js?v=218';
-import { Logger } from './logger.js?v=218';
+import * as C from './config.js?v=219';
+import { gameState, viewportState } from './state.js?v=219';
+import { ui, updateUI, updateExpeditionsPanel, updateActionPanel, logMessage, createContextMenu, removeContextMenu } from './ui.js?v=219';
+import { getServerTime, getNeighbors, isAreaClear, createStructure, placeRandomStructure, findPath } from './utils.js?v=219';
+import { gameLoop, initRendererCache, updateFogCache } from './renderer.js?v=219';
+import { runAIDecision } from './ai.js?v=219';
+import { Logger } from './logger.js?v=219';
 
 // --- MULTIPLAYER (V201 ODDELENO) ---
-import { setupMultiplayerSync, syncExpeditionToFirebase, removeExpeditionFromFirebase, syncActionToFirebase } from './multiplayer.js?v=218';
-import { handleCombatBetweenExpeditions } from './combat.js?v=218';
+import { setupMultiplayerSync, syncExpeditionToFirebase, removeExpeditionFromFirebase, syncActionToFirebase } from './multiplayer.js?v=219';
+import { handleCombatBetweenExpeditions } from './combat.js?v=219';
 
 // v190: Pomocná funkce pro získání synchronizovaného času
 
@@ -279,9 +279,10 @@ function finishInit(resolveCallback) {
 
     updateUI();
     updateExpeditionsPanel();
-    logMessage(`Vítej v Pixelové říši! Verze 218 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
+    logMessage(`Vítej v Pixelové říši! Verze 219 aktivní. Hraješ jako ${gameState.players[gameState.myPlayerId]?.name || gameState.myPlayerId}.`, 'win');
 
     gameState.needsRedraw = true;
+    initRendererCache(); // V218 Offscreen Canvas Vygenerování mapy
     requestAnimationFrame(gameLoop);
     requestAnimationFrame(physicsLoop);
 
@@ -289,7 +290,7 @@ function finishInit(resolveCallback) {
     window.showScreen('game-ui');
 
     // Zapojení vstupních listenerů (mouse/keyboard events)
-    import('../main.js?v=218').then(m => {
+    import('../main.js?v=219').then(m => {
         if (window.attachEventListeners) window.attachEventListeners(); // v main.js attach fn wrapper
     });
 
@@ -1032,6 +1033,11 @@ export function revealMapAround(cx, cy, radius, playerId = gameState.myPlayerId)
                 const cell = gameState.gameBoard[y][x];
                 if (!cell.visibleTo.includes(playerId)) {
                     cell.visibleTo.push(playerId);
+                    
+                    // V218: Dynamický odpar mlhy v Cache plátně pro lokálního hráče
+                    if (playerId === gameState.myPlayerId) {
+                        updateFogCache(x, y);
+                    }
                 }
             }
         }
@@ -1044,6 +1050,7 @@ export function revealMap(playerId = gameState.myPlayerId) {
         for (let x = 0; x < C.GRID_SIZE; x++) {
             if (!gameState.gameBoard[y][x].visibleTo.includes(playerId)) {
                 gameState.gameBoard[y][x].visibleTo.push(playerId);
+                if (playerId === gameState.myPlayerId) updateFogCache(x, y);
             }
         }
     }
