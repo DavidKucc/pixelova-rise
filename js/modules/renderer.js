@@ -1,8 +1,8 @@
-console.log('[DEBUG] renderer.js loaded v=217');
+console.log('[DEBUG] renderer.js loaded v=218');
 
-import { ui } from './ui.js?v=217';
-import { gameState, viewportState } from './state.js?v=217';
-import * as C from './config.js?v=217';
+import { ui } from './ui.js?v=218';
+import { gameState, viewportState } from './state.js?v=218';
+import * as C from './config.js?v=218';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 export function gameLoop() {
@@ -38,12 +38,18 @@ function drawBoard() {
 
     const fullCellSize = CELL_SIZE + GAP_SIZE;
 
-    // 1. VYKRESLEN� TER�NU A FOG OF WAR
-    for (let y = 0; y < GRID_SIZE; y++) {
-        for (let x = 0; x < GRID_SIZE; x++) {
+    // 0. VIEWPORT CULLING: Analýza viditelné plochy pro ořez neviditelných buněk (s přesahem 1 buňky pro jistotu)
+    const startX = Math.max(0, Math.floor(-gridPos.x / (scale * fullCellSize)) - 1);
+    const endX = Math.min(GRID_SIZE, Math.ceil((canvas.width - gridPos.x) / (scale * fullCellSize)) + 1);
+    const startY = Math.max(0, Math.floor(-gridPos.y / (scale * fullCellSize)) - 1);
+    const endY = Math.min(GRID_SIZE, Math.ceil((canvas.height - gridPos.y) / (scale * fullCellSize)) + 1);
+
+    // 1. VYKRESLENÍ TERÉNU A FOG OF WAR (nyní se kreslí jen viditelný výřez kamery)
+    for (let y = startY; y < endY; y++) {
+        for (let x = startX; x < endX; x++) {
             const cell = gameState.gameBoard[y][x];
 
-            // OPTIMALIZACE: Pokud nen� bu�ka vid�t, kresl�me �erno
+            // OPTIMALIZACE: Pokud nen buka vidt, kreslme erno
             let visible = cell.visibleTo.includes(gameState.myPlayerId);
             let finalColor = visible ? (CELL_COLORS[cell.terrain] || CELL_COLORS['none'] || '#3d9440') : CELL_COLORS['hidden'];
 
@@ -52,20 +58,24 @@ function drawBoard() {
         }
     }
 
-    // 2. VYKRESLEN� BUDOV
+    // 2. VYKRESLENÍ BUDOV (s cullingem)
     gameState.structures.forEach(struct => {
-        const structCell = gameState.gameBoard[struct.y][struct.x];
+        // Culling: Přeskočit budovy mimo obrazovku
+        if (struct.x + struct.w < startX || struct.x > endX || struct.y + struct.h < startY || struct.y > endY) return;
+
+        const structCell = gameState.gameBoard[struct.y]?.[struct.x];
+        if (!structCell) return;
         const isVisible = structCell.visibleTo.includes(gameState.myPlayerId);
 
         if (isVisible) {
             const structScreenX = struct.x * fullCellSize;
             const structScreenY = struct.y * fullCellSize;
 
-            // Pokud je budova objeven�, ale nikdo ji nevlastn�, d�me j� "neutr�ln�" barvu budovy
+            // Pokud je budova objeven, ale nikdo ji nevlastn, dme j "neutrln" barvu budovy
             const owner = struct.ownerId ? gameState.players[struct.ownerId] : null;
             ctx.fillStyle = owner ? owner.baseColor : '#78909C';
 
-            // Abychom se vyvarovali asymetrick�m p�ekryv�m, ���ka a v��ka budov zapl�uje v�etn� gap�
+            // Abychom se vyvarovali asymetrickm pekryvm, ka a vka budov zapluje vetn gap
             const drawW = struct.w * fullCellSize - GAP_SIZE;
             const drawH = struct.h * fullCellSize - GAP_SIZE;
 
@@ -90,19 +100,23 @@ function drawBoard() {
         }
     });
 
-    // 3. VYKRESLEN� EXPEDIC
+    // 3. VYKRESLENÍ EXPEDIC
     // Moje expedice
     if (gameState.players[gameState.myPlayerId]?.activeExpeditions) {
         gameState.players[gameState.myPlayerId].activeExpeditions.forEach(exp => {
             const isSelected = gameState.selectedExpeditionIds.includes(exp.id);
             const curX = exp.startX + (exp.targetX - exp.startX) * exp.progress;
             const curY = exp.startY + (exp.targetY - exp.startY) * exp.progress;
+            
+            // Culling pro expedice (margin 2 buňky kvůli velikosti mraku)
+            if (curX < startX - 2 || curX > endX + 2 || curY < startY - 2 || curY > endY + 2) return;
+            
             drawExpedition(ctx, curX, curY, exp.unitsLeft, gameState.players[gameState.myPlayerId].color, isSelected);
             drawDustIndicators(ctx, curX, curY);
         });
     }
 
-    // Ostatn� expedice (jen v dohledu)
+    // Ostatn expedice (jen v dohledu)
     Object.keys(gameState.players).forEach(pId => {
         if (pId === gameState.myPlayerId) return;
         const oPlayer = gameState.players[pId];
@@ -110,10 +124,14 @@ function drawBoard() {
             oPlayer.activeExpeditions.forEach(exp => {
                 const curX = exp.startX + (exp.targetX - exp.startX) * exp.progress;
                 const curY = exp.startY + (exp.targetY - exp.startY) * exp.progress;
+
+                // Culling pro cizí expedice
+                if (curX < startX - 2 || curX > endX + 2 || curY < startY - 2 || curY > endY + 2) return;
+
                 const cY = Math.round(curY);
                 const cX = Math.round(curX);
 
-                // Kontrola �ir��ho okol� (cca 5x5), proto�e render mraku zab�r� tak� m�sto
+                // Kontrola širšího okolí (cca 5x5)
                 let isVisible = false;
                 for (let dy = -2; dy <= 2; dy++) {
                     for (let dx = -2; dx <= 2; dx++) {
@@ -133,7 +151,7 @@ function drawBoard() {
     });
 
     // 4. VYKRESLENÍ DĚLNÍKŮ (v175)
-    drawWorkers(ctx);
+    drawWorkers(ctx, startX, startY, endX, endY);
 
     // 5. VÝBĚROVÝ BOX
     if (gameState.selectionBox?.active && viewportState.didDrag) {
@@ -149,7 +167,7 @@ function drawBoard() {
     ctx.restore();
 }
 
-function drawWorkers(ctx) {
+function drawWorkers(ctx, startX, startY, endX, endY) {
     if (!gameState.workers) return;
     const fullCellSize = CELL_SIZE + GAP_SIZE;
     const time = performance.now() / 1000;
@@ -161,6 +179,9 @@ function drawWorkers(ctx) {
 
         const curX = w.startX + (targetX - w.startX) * w.progress;
         const curY = w.startY + (targetY - w.startY) * w.progress;
+
+        // Culling pro workery
+        if (curX < startX - 1 || curX > endX + 1 || curY < startY - 1 || curY > endY + 1) return;
 
         const screenX = curX * fullCellSize;
         const screenY = curY * fullCellSize;

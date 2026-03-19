@@ -1,10 +1,10 @@
-console.log('[DEBUG] multiplayer.js loaded v=217');
+console.log('[DEBUG] multiplayer.js loaded v=218');
 
-import { db } from '../firebase-config.js?v=217';
+import { db } from '../firebase-config.js?v=218';
 import { ref, set, push, onValue, onDisconnect, remove, onChildAdded, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { gameState } from './state.js?v=217';
-import { getServerTime } from './utils.js?v=217';
-import { captureStructure } from './game.js?v=217';
+import { gameState } from './state.js?v=218';
+import { getServerTime } from './utils.js?v=218';
+import { captureStructure } from './game.js?v=218';
 
 /**
  * Zodpovídá za přepis lokálního pole `player.activeExpeditions` Firebase daty.
