@@ -1,10 +1,10 @@
-console.log('[DEBUG] multiplayer.js loaded v=220');
+console.log('[DEBUG] multiplayer.js loaded v=221');
 
-import { db } from '../firebase-config.js?v=220';
+import { db } from '../firebase-config.js?v=221';
 import { ref, set, push, onValue, onDisconnect, remove, onChildAdded, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { gameState } from './state.js?v=220';
-import { getServerTime } from './utils.js?v=220';
-import { captureStructure } from './game.js?v=220';
+import { gameState } from './state.js?v=221';
+import { getServerTime } from './utils.js?v=221';
+import { captureStructure } from './game.js?v=221';
 
 /**
  * Zodpovídá za přepis lokálního pole `player.activeExpeditions` Firebase daty.
@@ -135,32 +135,38 @@ export function setupMultiplayerSync() {
 
 export function syncExpeditionToFirebase(playerId, exp, partialUpdate = false) {
     if (!gameState.currentLobbyId || !exp) return;
-    const expeditionsRef = ref(db, `lobbies/${gameState.currentLobbyId}/expeditions/${playerId}/${exp.id}`);
     
-    if (partialUpdate) {
-        update(expeditionsRef, {
-            startX: exp.startX,
-            startY: exp.startY,
-            targetX: exp.targetX,
-            targetY: exp.targetY,
-            startTime: exp.startTime || getServerTime(),
-            duration: exp.duration || 0,
-            timestamp: getServerTime()
-        });
-    } else {
-        set(expeditionsRef, {
-            id: exp.id,
-            startX: exp.startX,
-            startY: exp.startY,
-            targetX: exp.targetX,
-            targetY: exp.targetY,
-            units: exp.unitsLeft,
-            initialUnits: exp.initialUnits,
-            startTime: exp.startTime || getServerTime(),
-            duration: exp.duration || 0,
-            isHolding: exp.isHolding || false,
-            timestamp: getServerTime()
-        });
+    try {
+        const expeditionsRef = ref(db, `lobbies/${gameState.currentLobbyId}/expeditions/${playerId}/${exp.id}`);
+        
+        if (partialUpdate) {
+            update(expeditionsRef, {
+                startX: exp.startX,
+                startY: exp.startY,
+                targetX: exp.targetX,
+                targetY: exp.targetY,
+                startTime: exp.startTime || getServerTime(),
+                duration: exp.duration || 0,
+                timestamp: getServerTime()
+            }).catch(e => console.error('[FIREBASE UPDATE ERROR]', e));
+        } else {
+            const dataLoad = {
+                id: exp.id,
+                startX: exp.startX,
+                startY: exp.startY,
+                targetX: exp.targetX,
+                targetY: exp.targetY,
+                units: exp.unitsLeft,
+                initialUnits: exp.initialUnits,
+                startTime: exp.startTime || getServerTime(),
+                duration: exp.duration || 0,
+                isHolding: exp.isHolding || false,
+                timestamp: getServerTime()
+            };
+            set(expeditionsRef, dataLoad).catch(e => console.error('[FIREBASE SET ERROR]', e, dataLoad));
+        }
+    } catch (err) {
+        console.error('[SYNC CRITICAL ERROR]', err, exp);
     }
 }
 
