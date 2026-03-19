@@ -1,10 +1,10 @@
-console.log('[DEBUG] multiplayer.js loaded v=222');
+console.log('[DEBUG] multiplayer.js loaded v=223');
 
-import { db } from '../firebase-config.js?v=222';
+import { db } from '../firebase-config.js?v=223';
 import { ref, set, push, onValue, onDisconnect, remove, onChildAdded, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { gameState } from './state.js?v=222';
-import { getServerTime } from './utils.js?v=222';
-import { captureStructure } from './game.js?v=222';
+import { gameState } from './state.js?v=223';
+import { getServerTime } from './utils.js?v=223';
+import { captureStructure } from './game.js?v=223';
 
 /**
  * Zodpovídá za přepis lokálního pole `player.activeExpeditions` Firebase daty.
@@ -47,7 +47,7 @@ export function setupMultiplayerSync() {
                     const isMyOwn = otherPlayerId === gameState.myPlayerId;
                     if (isMyOwn && gameState.isHost && existingExp.unitsLeft > remote.units && remote.units > 0) {
                         console.warn(`[SYNC-HEAL] Zachycen Anomální Cloud Drop! Cloud hlásil ${remote.units}, my máme ${existingExp.unitsLeft}. Ponechávám vyšší RAM číslo a vynucuji zápis!`);
-                        import('../main.js?v=222').then(m => m.syncExpeditionToFirebase(otherPlayerId, existingExp));
+                        syncExpeditionToFirebase(otherPlayerId, existingExp);
                     } else {
                         existingExp.unitsLeft = remote.units;
                         if (remote.initialUnits !== undefined) {
