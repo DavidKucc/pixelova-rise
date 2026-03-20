@@ -1,8 +1,8 @@
-console.log('[DEBUG] renderer.js loaded v=229');
+console.log('[DEBUG] renderer.js loaded v=230');
 
-import { ui } from './ui.js?v=229';
-import { gameState, viewportState } from './state.js?v=229';
-import * as C from './config.js?v=229';
+import { ui } from './ui.js?v=230';
+import { gameState, viewportState } from './state.js?v=230';
+import * as C from './config.js?v=230';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 let bgCanvasCache = null;
@@ -273,7 +273,7 @@ function drawExpedition(ctx, curX, curY, exp, color, isSelected) {
     let fightAngle = null;
 
     // Fyzika Střetu (Frontline Deformation) - Lokální prohledání mapy na blížícího se nepřítele
-    let minDist = 2.0; 
+    let closestDist = Infinity; 
     Object.keys(gameState.players).forEach(pId => {
         if (gameState.players[pId].color === color) return; // Nehledáme vlasní a neutrální, jen nepřátelskou barvu
         const enemyPlayer = gameState.players[pId];
@@ -283,9 +283,14 @@ function drawExpedition(ctx, curX, curY, exp, color, isSelected) {
             if (eEnemy.unitsLeft <= 0) return;
             const ex = eEnemy.startX + (eEnemy.targetX - eEnemy.startX) * eEnemy.progress;
             const ey = eEnemy.startY + (eEnemy.targetY - eEnemy.startY) * eEnemy.progress;
+            
+            const safeUnitsE = Math.min(200, Math.max(1, eEnemy.initialUnits || eEnemy.unitsLeft || 1));
+            const enemyRadius = Math.max(0.5, Math.sqrt(safeUnitsE / Math.PI) * 0.65);
+            const collisionDist = baseRadius + enemyRadius + 0.3; // Reálný dotyk povrchů obou liquidů
+            
             const d = Math.hypot(curX - ex, curY - ey);
-            if (d < minDist) {
-                minDist = d;
+            if (d < collisionDist && d < closestDist) {
+                closestDist = d;
                 
                 if (d > 0.1) {
                     // Armády ještě jedou proti sobě, bezpečný diferenční vektor
