@@ -1,8 +1,8 @@
-console.log('[DEBUG] renderer.js loaded v=227');
+console.log('[DEBUG] renderer.js loaded v=229');
 
-import { ui } from './ui.js?v=227';
-import { gameState, viewportState } from './state.js?v=227';
-import * as C from './config.js?v=227';
+import { ui } from './ui.js?v=229';
+import { gameState, viewportState } from './state.js?v=229';
+import * as C from './config.js?v=229';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 let bgCanvasCache = null;
@@ -286,14 +286,38 @@ function drawExpedition(ctx, curX, curY, exp, color, isSelected) {
             const d = Math.hypot(curX - ex, curY - ey);
             if (d < minDist) {
                 minDist = d;
-                fightAngle = Math.atan2(curY - ey, curX - ex); // Vektor: Od nepřítele k Nám
+                
+                if (d > 0.1) {
+                    // Armády ještě jedou proti sobě, bezpečný diferenční vektor
+                    fightAngle = Math.atan2(curY - ey, curX - ex); // Vektor: Od nepřítele k Nám
+                } else {
+                    // Armády už stojí fyzicky na exaktně stejném místě a bijí se.
+                    // Math.atan2(0,0) by hodilo úhel 0 (Východ) pro OBA, a ponořili by se do sebe.
+                    // Musíme úhel vypočítat z dráhy, ze které k sobě přišly!
+                    let myDx = exp.startX - curX;
+                    let myDy = exp.startY - curY;
+                    
+                    if (Math.abs(myDx) < 0.1 && Math.abs(myDy) < 0.1) {
+                        // Moje armáda jen stála jako Obránce. Odrazíme se podle vektoru Útočníka.
+                        myDx = curX - eEnemy.startX;
+                        myDy = curY - eEnemy.startY;
+                    }
+                    
+                    // Fallback pokud oba spawnovali na stejném fleku a nestihli se hnout
+                    if (Math.abs(myDx) < 0.1 && Math.abs(myDy) < 0.1) {
+                        fightAngle = (exp.id > eEnemy.id) ? 0 : Math.PI;
+                    } else {
+                        fightAngle = Math.atan2(myDy, myDx);
+                    }
+                }
             }
         });
     });
 
     if (fightAngle !== null) {
-        // Pseudo-fyzika: Odraz (Push-Back) těžiště od nepřítele
-        const pushBackDist = baseRadius * 0.4; 
+        // Pseudo-fyzika: Odraz (Push-Back) těžiště od nepřítele. 
+        // Síla odrazu kompenzuje rádius zploštění (0.6x baseRadius z deformace + 0.05 rezerva)
+        const pushBackDist = baseRadius * 0.65; 
         renderX += Math.cos(fightAngle) * pushBackDist;
         renderY += Math.sin(fightAngle) * pushBackDist;
     }
