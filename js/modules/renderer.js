@@ -1,8 +1,8 @@
-console.log('[DEBUG] renderer.js loaded v=223');
+console.log('[DEBUG] renderer.js loaded v=224');
 
-import { ui } from './ui.js?v=223';
-import { gameState, viewportState } from './state.js?v=223';
-import * as C from './config.js?v=223';
+import { ui } from './ui.js?v=224';
+import { gameState, viewportState } from './state.js?v=224';
+import * as C from './config.js?v=224';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 let bgCanvasCache = null;
@@ -262,32 +262,63 @@ function drawWorkers(ctx, startX, startY, endX, endY) {
 
 function drawExpedition(ctx, curX, curY, units, color, isSelected) {
     const fullCellSize = CELL_SIZE + GAP_SIZE;
-    ctx.fillStyle = color;
-    ctx.strokeStyle = isSelected ? '#fff' : color;
-    ctx.lineWidth = isSelected ? (2 / viewportState.scale) : (1 / viewportState.scale);
+    const time = performance.now() / 400; // Rychlost přelévání
+    
+    // Objem tekuté formace
+    // Min velikost = 1 políčko. Max = klidně neomezeně, ale pro výkon ořezáme.
+    const safeUnits = Math.min(200, Math.max(1, units));
+    const baseRadius = Math.max(0.5, Math.sqrt(safeUnits / Math.PI));
+    const checkRadius = Math.ceil(baseRadius * 1.5) + 1; // Okruh kontroly buněk
 
-    // v211: Zarovnané formace jednotek (1:1 reprezentace s ořezem na max 64 = 8x8 blok)
-    const pixelCount = Math.min(64, Math.ceil(units));
-    const side = Math.ceil(Math.sqrt(pixelCount));
-    const offset = (side - 1) / 2; // Zarovnání na střed
+    /**
+     * Vnitřní funkce pro vykreslení slizu 
+     * @param {number} rOffset Zvětšení poloměru (pro bílý outline selekce)
+     * @param {string} clr Barva
+     */
+    const renderBlob = (rOffset, clr) => {
+        ctx.fillStyle = clr;
+        for (let dy = -checkRadius; dy <= checkRadius; dy++) {
+            for (let dx = -checkRadius; dx <= checkRadius; dx++) {
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                // Centrální políčko se vždy nakreslí pevně
+                if (dist === 0) {
+                    ctx.fillRect(
+                        Math.round((curX + dx) * fullCellSize), 
+                        Math.round((curY + dy) * fullCellSize), 
+                        fullCellSize, fullCellSize
+                    );
+                    continue;
+                }
 
-    const points = [];
-    let px = 0, py = 0;
-    for (let i = 0; i < pixelCount; i++) {
-        points.push({ x: px - offset, y: py - offset });
-        px++;
-        if (px >= side) {
-            px = 0;
-            py++;
+                // Goniometrický šum pro deformaci (Liquid Organic Mouvement)
+                const angle = Math.atan2(dy, dx);
+                // Komplexní vlna složená ze 3 frekvencí a posunutá časem
+                const wave = Math.sin(angle * 3 + time) * 0.15 
+                           + Math.cos(angle * 5 - time * 0.8) * 0.1 
+                           + Math.sin(angle * 2 + time * 1.5) * 0.05;
+                
+                const dynamicRadius = (baseRadius + rOffset) * (1 + wave);
+
+                if (dist <= dynamicRadius) {
+                    // Pevný block (pixel-art hrana) - Bez gapu (slité v jednu hmotu)
+                    ctx.fillRect(
+                        Math.round((curX + dx) * fullCellSize), 
+                        Math.round((curY + dy) * fullCellSize), 
+                        fullCellSize, fullCellSize // kreslíme včetně spárů = jednolitá kapalina
+                    );
+                }
+            }
         }
-    }
+    };
 
-    points.forEach(p => {
-        const ox = (curX + p.x) * fullCellSize;
-        const oy = (curY + p.y) * fullCellSize;
-        ctx.fillRect(ox, oy, CELL_SIZE, CELL_SIZE);
-        if (isSelected) ctx.strokeRect(ox, oy, CELL_SIZE, CELL_SIZE);
-    });
+    // 1. Zvýraznění (Outline)
+    if (isSelected) {
+        renderBlob(0.4, '#ffffff'); // Nakreslí o něco tlustší bílý blob naspod
+    }
+    
+    // 2. Barva hráče (Tělo liquidu)
+    renderBlob(0, color);
 }
 
 function drawDustIndicators(ctx, x, y) {
