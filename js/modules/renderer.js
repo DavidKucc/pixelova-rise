@@ -1,8 +1,8 @@
-console.log('[DEBUG] renderer.js loaded v=225');
+console.log('[DEBUG] renderer.js loaded v=226');
 
-import { ui } from './ui.js?v=225';
-import { gameState, viewportState } from './state.js?v=225';
-import * as C from './config.js?v=225';
+import { ui } from './ui.js?v=226';
+import { gameState, viewportState } from './state.js?v=226';
+import * as C from './config.js?v=226';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 let bgCanvasCache = null;
@@ -161,7 +161,7 @@ function drawBoard() {
             // Culling pro expedice (margin 2 buňky kvůli velikosti mraku)
             if (curX < startX - 2 || curX > endX + 2 || curY < startY - 2 || curY > endY + 2) return;
             
-            drawExpedition(ctx, curX, curY, exp.unitsLeft, gameState.players[gameState.myPlayerId].color, isSelected);
+            drawExpedition(ctx, curX, curY, exp, gameState.players[gameState.myPlayerId].color, isSelected);
             drawDustIndicators(ctx, curX, curY);
         });
     }
@@ -180,8 +180,7 @@ function drawBoard() {
 
                 const cY = Math.round(curY);
                 const cX = Math.round(curX);
-
-                // Kontrola širšího okolí (cca 5x5)
+                
                 let isVisible = false;
                 for (let dy = -2; dy <= 2; dy++) {
                     for (let dx = -2; dx <= 2; dx++) {
@@ -194,7 +193,7 @@ function drawBoard() {
                 }
 
                 if (isVisible) {
-                    drawExpedition(ctx, curX, curY, exp.unitsLeft, oPlayer.color, false);
+                    drawExpedition(ctx, curX, curY, exp, oPlayer.color, false);
                 }
             });
         }
@@ -260,64 +259,103 @@ function drawWorkers(ctx, startX, startY, endX, endY) {
     });
 }
 
-function drawExpedition(ctx, curX, curY, units, color, isSelected) {
+function drawExpedition(ctx, curX, curY, exp, color, isSelected) {
     const fullCellSize = CELL_SIZE + GAP_SIZE;
     const time = performance.now() / 400; // Rychlost přelévání
     
     // Objem tekuté formace
-    // Min velikost = 1 políčko. Max = ořezáme pro výkon.
-    const safeUnits = Math.min(200, Math.max(1, units));
-    // V225: Změnšení plošné velikosti o 35% pro kompaktnější vzhled velkých expedic.
+    const safeUnits = Math.min(200, Math.max(1, exp.unitsLeft || 1));
     const baseRadius = Math.max(0.5, Math.sqrt(safeUnits / Math.PI) * 0.65);
-    const checkRadius = Math.ceil(baseRadius * 1.5) + 1; // Okruh kontroly buněk
+    const checkRadius = Math.ceil(baseRadius * 1.5) + 2; // + padding pro tvarové deformační extrémy (Boj)
 
-    // Přepnutí glow filtru pro selekci
-    if (isSelected) {
-        ctx.shadowColor = '#ffffff';
-        ctx.shadowBlur = 15 * viewportState.scale; // dynamický glow podle zoomu kamery
-    } else {
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
+    let renderX = curX;
+    let renderY = curY;
+    let fightAngle = null;
+
+    // Fyzika Střetu (Frontline Deformation) - Lokální prohledání mapy na blížícího se nepřítele
+    let minDist = 2.0; 
+    Object.keys(gameState.players).forEach(pId => {
+        if (gameState.players[pId].color === color) return; // Nehledáme vlasní a neutrální, jen nepřátelskou barvu
+        const enemyPlayer = gameState.players[pId];
+        if (!enemyPlayer.activeExpeditions) return;
+
+        enemyPlayer.activeExpeditions.forEach(eEnemy => {
+            if (eEnemy.unitsLeft <= 0) return;
+            const ex = eEnemy.startX + (eEnemy.targetX - eEnemy.startX) * eEnemy.progress;
+            const ey = eEnemy.startY + (eEnemy.targetY - eEnemy.startY) * eEnemy.progress;
+            const d = Math.hypot(curX - ex, curY - ey);
+            if (d < minDist) {
+                minDist = d;
+                fightAngle = Math.atan2(curY - ey, curX - ex); // Vektor: Od nepřítele k Nám
+            }
+        });
+    });
+
+    if (fightAngle !== null) {
+        // Pseudo-fyzika: Odraz (Push-Back) těžiště od nepřítele
+        const pushBackDist = baseRadius * 0.4; 
+        renderX += Math.cos(fightAngle) * pushBackDist;
+        renderY += Math.sin(fightAngle) * pushBackDist;
     }
 
-    ctx.fillStyle = color;
+    const blobCells = [];
     
     for (let dy = -checkRadius; dy <= checkRadius; dy++) {
         for (let dx = -checkRadius; dx <= checkRadius; dx++) {
             const dist = Math.sqrt(dx*dx + dy*dy);
             
-            // Centrální políčko se vždy nakreslí pevně
             if (dist === 0) {
-                ctx.fillRect(
-                    Math.round((curX + dx) * fullCellSize), 
-                    Math.round((curY + dy) * fullCellSize), 
-                    fullCellSize + 0.5, fullCellSize + 0.5 // +0.5 eliminuje subpixelové mezírky mezi tily
-                );
+                blobCells.push({dx, dy});
                 continue;
             }
 
-            // Goniometrický šum pro deformaci (Liquid Organic Mouvement)
+            // Jemnější oscilace pro kapalinovost zamezující ustřelování bodů
             const angle = Math.atan2(dy, dx);
-            const wave = Math.sin(angle * 3 + time) * 0.15 
-                       + Math.cos(angle * 5 - time * 0.8) * 0.1 
-                       + Math.sin(angle * 2 + time * 1.5) * 0.05;
+            const wave = Math.sin(angle * 3 + time) * 0.08 
+                       + Math.cos(angle * 5 - time * 0.8) * 0.05 
+                       + Math.sin(angle * 2 + time * 1.5) * 0.03;
             
-            const dynamicRadius = baseRadius * (1 + wave);
+            let combatDeformation = 1.0;
+            if (fightAngle !== null) {
+                // Přetváření z Kruhu (Blob) do Fazole (Bojová linie / Frontline)
+                const angleDiff = angle - fightAngle;
+                // Pokud jde do střetu (fronta) nebo přímo dozadu (záda) -> Zploštění (0.6)
+                // Pokud jde kolmo do křídel (bok) -> Vytečení do strany (1.4 štít)
+                combatDeformation = 0.6 + 0.8 * Math.abs(Math.sin(angleDiff));
+            }
+
+            const dynamicRadius = baseRadius * combatDeformation * (1 + wave);
 
             if (dist <= dynamicRadius) {
-                // Pevný block (pixel-art hrana) - Bez gapu (slité v jednu hmotu)
-                ctx.fillRect(
-                    Math.round((curX + dx) * fullCellSize), 
-                    Math.round((curY + dy) * fullCellSize), 
-                    fullCellSize + 0.5, fullCellSize + 0.5 
-                );
+                blobCells.push({dx, dy});
             }
         }
     }
 
-    // Reset shadow filtru, abychom neovlivnili zbytek canvasu
-    ctx.shadowBlur = 0;
-    ctx.shadowColor = 'transparent';
+    // KRESÍCÍ FÁZE BLOKŮ NAPŘÍMO
+    
+    // 1. Zvýraznění (Pixel-Art Bílý obrys podvrstvou)
+    if (isSelected) {
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        blobCells.forEach(c => {
+            const ox = Math.round((renderX + c.dx) * fullCellSize);
+            const oy = Math.round((renderY + c.dy) * fullCellSize);
+            // Využití Canvas fillu do expandovaného bloku spolyká vnitřní linky a nechá dokonalý 2px obrys
+            ctx.rect(ox - 2, oy - 2, fullCellSize + 4.5, fullCellSize + 4.5);
+        });
+        ctx.fill();
+    }
+    
+    // 2. Tělo liquidu hrnce
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    blobCells.forEach(c => {
+        const ox = Math.round((renderX + c.dx) * fullCellSize);
+        const oy = Math.round((renderY + c.dy) * fullCellSize);
+        ctx.rect(ox, oy, fullCellSize + 0.5, fullCellSize + 0.5);
+    });
+    ctx.fill();
 }
 
 function drawDustIndicators(ctx, x, y) {
