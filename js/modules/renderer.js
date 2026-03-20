@@ -1,8 +1,8 @@
-console.log('[DEBUG] renderer.js loaded v=224');
+console.log('[DEBUG] renderer.js loaded v=225');
 
-import { ui } from './ui.js?v=224';
-import { gameState, viewportState } from './state.js?v=224';
-import * as C from './config.js?v=224';
+import { ui } from './ui.js?v=225';
+import { gameState, viewportState } from './state.js?v=225';
+import * as C from './config.js?v=225';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 let bgCanvasCache = null;
@@ -265,60 +265,59 @@ function drawExpedition(ctx, curX, curY, units, color, isSelected) {
     const time = performance.now() / 400; // Rychlost přelévání
     
     // Objem tekuté formace
-    // Min velikost = 1 políčko. Max = klidně neomezeně, ale pro výkon ořezáme.
+    // Min velikost = 1 políčko. Max = ořezáme pro výkon.
     const safeUnits = Math.min(200, Math.max(1, units));
-    const baseRadius = Math.max(0.5, Math.sqrt(safeUnits / Math.PI));
+    // V225: Změnšení plošné velikosti o 35% pro kompaktnější vzhled velkých expedic.
+    const baseRadius = Math.max(0.5, Math.sqrt(safeUnits / Math.PI) * 0.65);
     const checkRadius = Math.ceil(baseRadius * 1.5) + 1; // Okruh kontroly buněk
 
-    /**
-     * Vnitřní funkce pro vykreslení slizu 
-     * @param {number} rOffset Zvětšení poloměru (pro bílý outline selekce)
-     * @param {string} clr Barva
-     */
-    const renderBlob = (rOffset, clr) => {
-        ctx.fillStyle = clr;
-        for (let dy = -checkRadius; dy <= checkRadius; dy++) {
-            for (let dx = -checkRadius; dx <= checkRadius; dx++) {
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                
-                // Centrální políčko se vždy nakreslí pevně
-                if (dist === 0) {
-                    ctx.fillRect(
-                        Math.round((curX + dx) * fullCellSize), 
-                        Math.round((curY + dy) * fullCellSize), 
-                        fullCellSize, fullCellSize
-                    );
-                    continue;
-                }
+    // Přepnutí glow filtru pro selekci
+    if (isSelected) {
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 15 * viewportState.scale; // dynamický glow podle zoomu kamery
+    } else {
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+    }
 
-                // Goniometrický šum pro deformaci (Liquid Organic Mouvement)
-                const angle = Math.atan2(dy, dx);
-                // Komplexní vlna složená ze 3 frekvencí a posunutá časem
-                const wave = Math.sin(angle * 3 + time) * 0.15 
-                           + Math.cos(angle * 5 - time * 0.8) * 0.1 
-                           + Math.sin(angle * 2 + time * 1.5) * 0.05;
-                
-                const dynamicRadius = (baseRadius + rOffset) * (1 + wave);
+    ctx.fillStyle = color;
+    
+    for (let dy = -checkRadius; dy <= checkRadius; dy++) {
+        for (let dx = -checkRadius; dx <= checkRadius; dx++) {
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            // Centrální políčko se vždy nakreslí pevně
+            if (dist === 0) {
+                ctx.fillRect(
+                    Math.round((curX + dx) * fullCellSize), 
+                    Math.round((curY + dy) * fullCellSize), 
+                    fullCellSize + 0.5, fullCellSize + 0.5 // +0.5 eliminuje subpixelové mezírky mezi tily
+                );
+                continue;
+            }
 
-                if (dist <= dynamicRadius) {
-                    // Pevný block (pixel-art hrana) - Bez gapu (slité v jednu hmotu)
-                    ctx.fillRect(
-                        Math.round((curX + dx) * fullCellSize), 
-                        Math.round((curY + dy) * fullCellSize), 
-                        fullCellSize, fullCellSize // kreslíme včetně spárů = jednolitá kapalina
-                    );
-                }
+            // Goniometrický šum pro deformaci (Liquid Organic Mouvement)
+            const angle = Math.atan2(dy, dx);
+            const wave = Math.sin(angle * 3 + time) * 0.15 
+                       + Math.cos(angle * 5 - time * 0.8) * 0.1 
+                       + Math.sin(angle * 2 + time * 1.5) * 0.05;
+            
+            const dynamicRadius = baseRadius * (1 + wave);
+
+            if (dist <= dynamicRadius) {
+                // Pevný block (pixel-art hrana) - Bez gapu (slité v jednu hmotu)
+                ctx.fillRect(
+                    Math.round((curX + dx) * fullCellSize), 
+                    Math.round((curY + dy) * fullCellSize), 
+                    fullCellSize + 0.5, fullCellSize + 0.5 
+                );
             }
         }
-    };
-
-    // 1. Zvýraznění (Outline)
-    if (isSelected) {
-        renderBlob(0.4, '#ffffff'); // Nakreslí o něco tlustší bílý blob naspod
     }
-    
-    // 2. Barva hráče (Tělo liquidu)
-    renderBlob(0, color);
+
+    // Reset shadow filtru, abychom neovlivnili zbytek canvasu
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = 'transparent';
 }
 
 function drawDustIndicators(ctx, x, y) {
