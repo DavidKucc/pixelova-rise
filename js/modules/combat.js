@@ -1,8 +1,8 @@
-console.log('[DEBUG] combat.js loaded v=226');
+console.log('[DEBUG] combat.js loaded v=227');
 
-import { gameState } from './state.js?v=226';
-import { removeExpedition } from './game.js?v=226';
-import { syncExpeditionToFirebase, removeExpeditionFromFirebase } from './multiplayer.js?v=226';
+import { gameState } from './state.js?v=227';
+import { removeExpedition } from './game.js?v=227';
+import { syncExpeditionToFirebase, removeExpeditionFromFirebase } from './multiplayer.js?v=227';
 
 /**
  * Zpracovává bitvy mezi dvěma expedicemi. 
@@ -20,6 +20,7 @@ export function handleCombatBetweenExpeditions(p1Id) {
             if (e1.unitsLeft <= 0) return; // Mrtví nebojují
             p2.activeExpeditions.forEach(e2 => {
                 if (e2.unitsLeft <= 0) return; // Obrana proti Ghostům
+                const e1X = e1.startX + (e1.targetX - e1.startX) * e1.progress;
                 const e1Y = e1.startY + (e1.targetY - e1.startY) * e1.progress;
                 const e2X = e2.startX + (e2.targetX - e2.startX) * e2.progress;
                 const e2Y = e2.startY + (e2.targetY - e2.startY) * e2.progress;

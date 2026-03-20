@@ -1,10 +1,10 @@
-console.log('[DEBUG] multiplayer.js loaded v=226');
+console.log('[DEBUG] multiplayer.js loaded v=227');
 
-import { db } from '../firebase-config.js?v=226';
+import { db } from '../firebase-config.js?v=227';
 import { ref, set, push, onValue, onDisconnect, remove, onChildAdded, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { gameState } from './state.js?v=226';
-import { getServerTime } from './utils.js?v=226';
-import { captureStructure } from './game.js?v=226';
+import { gameState } from './state.js?v=227';
+import { getServerTime } from './utils.js?v=227';
+import { captureStructure } from './game.js?v=227';
 
 /**
  * Zodpovídá za přepis lokálního pole `player.activeExpeditions` Firebase daty.
@@ -62,6 +62,15 @@ export function setupMultiplayerSync() {
                     if (otherPlayerId !== gameState.myPlayerId) {
                         existingExp.isRemote = true;
 
+                        // Detekce nového dojezdu pro cizí letku! Aby lokální hráč uznal obsazení dolu cizákem.
+                        const elapsed = getServerTime() - (remote.startTime || 0);
+                        const computedProgress = remote.duration > 0 ? Math.max(0, Math.min(1, elapsed / remote.duration)) : 1;
+                        if (computedProgress >= 1 && !existingExp.arrived) {
+                            existingExp.arrived = true;
+                            existingExp.progress = 1.0;
+                            import('./game.js?v=227').then(m => m.handleExpeditionArrival(otherPlayerId, existingExp));
+                        }
+
                         // v201 FIX: Přesměrování updatuje trasu (při bitvě zůstává Time a cíl zachován -> neseká)
                         const targetChanged = (existingExp.targetX !== remote.targetX || existingExp.targetY !== remote.targetY
                             || existingExp.startX !== remote.startX || existingExp.startY !== remote.startY);
@@ -74,10 +83,7 @@ export function setupMultiplayerSync() {
                             existingExp.startTime = remote.startTime;
                             existingExp.duration = remote.duration;
                         
-                            const elapsed = getServerTime() - (remote.startTime || 0);
-                            existingExp.progress = remote.duration > 0
-                                ? Math.max(0, Math.min(1, elapsed / remote.duration))
-                                : 1;
+                            existingExp.progress = computedProgress;
                             existingExp.arrived = (existingExp.progress >= 1);
                         }
                     } else {
@@ -101,7 +107,7 @@ export function setupMultiplayerSync() {
                         ? Math.max(0, Math.min(1, elapsed / remote.duration))
                         : 1;
 
-                    updatedExpeditions.push({
+                    const newExp = {
                         id: remote.id,
                         startX: remote.startX,
                         startY: remote.startY,
@@ -115,7 +121,13 @@ export function setupMultiplayerSync() {
                         isHolding: remote.isHolding || false,
                         arrived: computedProgress >= 1,
                         isRemote: (otherPlayerId !== gameState.myPlayerId)
-                    });
+                    };
+                    
+                    updatedExpeditions.push(newExp);
+                    
+                    if (newExp.arrived && newExp.isRemote) {
+                        import('./game.js?v=227').then(m => m.handleExpeditionArrival(otherPlayerId, newExp));
+                    }
                 }
             }
             

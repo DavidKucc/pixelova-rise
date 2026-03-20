@@ -1,8 +1,8 @@
-console.log('[DEBUG] renderer.js loaded v=226');
+console.log('[DEBUG] renderer.js loaded v=227');
 
-import { ui } from './ui.js?v=226';
-import { gameState, viewportState } from './state.js?v=226';
-import * as C from './config.js?v=226';
+import { ui } from './ui.js?v=227';
+import { gameState, viewportState } from './state.js?v=227';
+import * as C from './config.js?v=227';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 let bgCanvasCache = null;
