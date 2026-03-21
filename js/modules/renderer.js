@@ -1,8 +1,8 @@
-console.log('[DEBUG] renderer.js loaded v=230');
+console.log('[DEBUG] renderer.js loaded v=231');
 
-import { ui } from './ui.js?v=230';
-import { gameState, viewportState } from './state.js?v=230';
-import * as C from './config.js?v=230';
+import { ui } from './ui.js?v=231';
+import { gameState, viewportState } from './state.js?v=231';
+import * as C from './config.js?v=231';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 let bgCanvasCache = null;
@@ -340,17 +340,26 @@ function drawExpedition(ctx, curX, curY, exp, color, isSelected) {
 
             // Jemnější oscilace pro kapalinovost zamezující ustřelování bodů
             const angle = Math.atan2(dy, dx);
-            const wave = Math.sin(angle * 3 + time) * 0.08 
-                       + Math.cos(angle * 5 - time * 0.8) * 0.05 
-                       + Math.sin(angle * 2 + time * 1.5) * 0.03;
+            let wave = Math.sin(angle * 3 + time) * 0.08 
+                     + Math.cos(angle * 5 - time * 0.8) * 0.05 
+                     + Math.sin(angle * 2 + time * 1.5) * 0.03;
             
             let combatDeformation = 1.0;
             if (fightAngle !== null) {
+                let angleDiff = angle - fightAngle;
+                // Normalizace na interval -PI až PI
+                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
                 // Přetváření z Kruhu (Blob) do Fazole (Bojová linie / Frontline)
-                const angleDiff = angle - fightAngle;
                 // Pokud jde do střetu (fronta) nebo přímo dozadu (záda) -> Zploštění (0.6)
                 // Pokud jde kolmo do křídel (bok) -> Vytečení do strany (1.4 štít)
                 combatDeformation = 0.6 + 0.8 * Math.abs(Math.sin(angleDiff));
+
+                // Znehybnění bojové linie. Fronta (úhel 0) má liquid vlnění 0%. Záda bojovníků (PI) bublají (100%).
+                // Mocnina zajistí, že statická zeď v dotyku zůstane rovná hluboko do boků.
+                const wobbleMultiplier = Math.pow(Math.abs(angleDiff) / Math.PI, 1.5);
+                wave *= wobbleMultiplier;
             }
 
             const dynamicRadius = baseRadius * combatDeformation * (1 + wave);
