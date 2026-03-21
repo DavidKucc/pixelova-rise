@@ -1,8 +1,8 @@
-console.log('[DEBUG] renderer.js loaded v=231');
+console.log('[DEBUG] renderer.js loaded v=232');
 
-import { ui } from './ui.js?v=231';
-import { gameState, viewportState } from './state.js?v=231';
-import * as C from './config.js?v=231';
+import { ui } from './ui.js?v=232';
+import { gameState, viewportState } from './state.js?v=232';
+import * as C from './config.js?v=232';
 const { GRID_SIZE, CELL_SIZE, GAP_SIZE, CELL_COLORS, STRUCTURE_ICONS, UNIT_PIXEL_SIZE, UNIT_SPREAD } = C;
 
 let bgCanvasCache = null;
@@ -274,6 +274,8 @@ function drawExpedition(ctx, curX, curY, exp, color, isSelected) {
 
     // Fyzika Střetu (Frontline Deformation) - Lokální prohledání mapy na blížícího se nepřítele
     let closestDist = Infinity; 
+    let combatIntensity = 0.0; // Úroveň hloubky překryvu pro plynulý morphing liquidu
+
     Object.keys(gameState.players).forEach(pId => {
         if (gameState.players[pId].color === color) return; // Nehledáme vlasní a neutrální, jen nepřátelskou barvu
         const enemyPlayer = gameState.players[pId];
@@ -291,6 +293,9 @@ function drawExpedition(ctx, curX, curY, exp, color, isSelected) {
             const d = Math.hypot(curX - ex, curY - ey);
             if (d < collisionDist && d < closestDist) {
                 closestDist = d;
+                
+                // Výpočet hrubé fyzické penetrace těl do sebe (0 se sotva líznou, 1.0 = stojí na totožném bodu)
+                combatIntensity = Math.min(1.0, Math.max(0.0, 1.0 - (d / collisionDist)));
                 
                 if (d > 0.1) {
                     // Armády ještě jedou proti sobě, bezpečný diferenční vektor
@@ -319,12 +324,13 @@ function drawExpedition(ctx, curX, curY, exp, color, isSelected) {
         });
     });
 
-    if (fightAngle !== null) {
-        // Pseudo-fyzika: Odraz (Push-Back) těžiště od nepřítele. 
-        // Síla odrazu kompenzuje rádius zploštění (0.6x baseRadius z deformace + 0.05 rezerva)
-        const pushBackDist = baseRadius * 0.65; 
-        renderX += Math.cos(fightAngle) * pushBackDist;
-        renderY += Math.sin(fightAngle) * pushBackDist;
+    if (fightAngle !== null && combatIntensity > 0) {
+        // Plynulý (interpolovaný) odraz. Jak moc pronikají, tak silně je engine odtlačuje
+        // max pushBack kompenzuje zploštění armády. Vytvoří to pevný střed bez mezer.
+        const maxPushBack = baseRadius * 0.45; 
+        const currentPushBack = maxPushBack * combatIntensity;
+        renderX += Math.cos(fightAngle) * currentPushBack;
+        renderY += Math.sin(fightAngle) * currentPushBack;
     }
 
     const blobCells = [];
@@ -345,21 +351,25 @@ function drawExpedition(ctx, curX, curY, exp, color, isSelected) {
                      + Math.sin(angle * 2 + time * 1.5) * 0.03;
             
             let combatDeformation = 1.0;
-            if (fightAngle !== null) {
+            if (fightAngle !== null && combatIntensity > 0) {
                 let angleDiff = angle - fightAngle;
                 // Normalizace na interval -PI až PI
                 while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
                 while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
 
-                // Přetváření z Kruhu (Blob) do Fazole (Bojová linie / Frontline)
-                // Pokud jde do střetu (fronta) nebo přímo dozadu (záda) -> Zploštění (0.6)
-                // Pokud jde kolmo do křídel (bok) -> Vytečení do strany (1.4 štít)
-                combatDeformation = 0.6 + 0.8 * Math.abs(Math.sin(angleDiff));
+                // Přetváření z Kruhu do Štítu - maximální cílové zploštění pro tvrdý souboj tělo na tělo
+                const targetDeformation = 0.6 + 0.8 * Math.abs(Math.sin(angleDiff));
+                
+                // Jemné plynulé morfování z Kruhu (1.0) do Bojového Zploštění (targetDeformation) dle srážky
+                combatDeformation = 1.0 + (targetDeformation - 1.0) * combatIntensity;
 
-                // Znehybnění bojové linie. Fronta (úhel 0) má liquid vlnění 0%. Záda bojovníků (PI) bublají (100%).
-                // Mocnina zajistí, že statická zeď v dotyku zůstane rovná hluboko do boků.
+                // Znehybnění bojové linie - hrana úderu ztrácí liquid turbulence (drží rovnou pevnou bariéru)
+                // Jak daleko od epicentra do zad se vlnění povoluje, diktuje wobbleMultiplier
                 const wobbleMultiplier = Math.pow(Math.abs(angleDiff) / Math.PI, 1.5);
-                wave *= wobbleMultiplier;
+                // Když se sotva dotýkají (intensity ~ 0.1), nebudeme "tužit" vodu úplně
+                const interpolatedWobble = 1.0 - ((1.0 - wobbleMultiplier) * Math.pow(combatIntensity, 0.5));
+                
+                wave *= interpolatedWobble;
             }
 
             const dynamicRadius = baseRadius * combatDeformation * (1 + wave);

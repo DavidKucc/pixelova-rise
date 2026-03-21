@@ -1,10 +1,10 @@
-console.log('[DEBUG] multiplayer.js loaded v=231');
+console.log('[DEBUG] multiplayer.js loaded v=232');
 
-import { db } from '../firebase-config.js?v=231';
+import { db } from '../firebase-config.js?v=232';
 import { ref, set, push, onValue, onDisconnect, remove, onChildAdded, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { gameState } from './state.js?v=231';
-import { getServerTime } from './utils.js?v=231';
-import { captureStructure } from './game.js?v=231';
+import { gameState } from './state.js?v=232';
+import { getServerTime } from './utils.js?v=232';
+import { captureStructure } from './game.js?v=232';
 
 /**
  * Zodpovídá za přepis lokálního pole `player.activeExpeditions` Firebase daty.
@@ -68,7 +68,7 @@ export function setupMultiplayerSync() {
                         if (computedProgress >= 1 && !existingExp.arrived) {
                             existingExp.arrived = true;
                             existingExp.progress = 1.0;
-                            import('./game.js?v=231').then(m => m.handleExpeditionArrival(otherPlayerId, existingExp));
+                            import('./game.js?v=232').then(m => m.handleExpeditionArrival(otherPlayerId, existingExp));
                         }
 
                         // v201 FIX: Přesměrování updatuje trasu (při bitvě zůstává Time a cíl zachován -> neseká)
@@ -126,7 +126,7 @@ export function setupMultiplayerSync() {
                     updatedExpeditions.push(newExp);
                     
                     if (newExp.arrived && newExp.isRemote) {
-                        import('./game.js?v=231').then(m => m.handleExpeditionArrival(otherPlayerId, newExp));
+                        import('./game.js?v=232').then(m => m.handleExpeditionArrival(otherPlayerId, newExp));
                     }
                 }
             }
